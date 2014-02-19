@@ -732,17 +732,22 @@ using namespace Maply;
     coord.x = msg.whereGeo.lon();
     coord.y = msg.whereGeo.lat();
 
+    bool selected = false;
     if (selectedObj && self.selection)
     {
         // The user selected something, so let the delegate know
         if (_delegate)
         {
+            selected = true;
             if ([_delegate respondsToSelector:@selector(maplyViewController:didSelect:atLoc:onScreen:)])
                 [_delegate maplyViewController:self didSelect:selectedObj atLoc:coord onScreen:msg.touchLoc];
             else if ([_delegate respondsToSelector:@selector(maplyViewController:didSelect:)])
                 [_delegate maplyViewController:self didSelect:selectedObj];
+            else
+                selected = false;
         }
-    } else {
+    }
+    if (!selected) {
         // The user didn't select anything, let the delegate know.
         if (_delegate)
         {
