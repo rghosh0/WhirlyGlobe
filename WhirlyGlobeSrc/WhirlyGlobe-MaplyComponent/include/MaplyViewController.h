@@ -56,6 +56,10 @@
   */
 - (void)maplyViewController:(MaplyViewController *)viewC didTapAt:(MaplyCoordinate)coord;
 
+- (void)maplyViewControllerDidStartMoving:(MaplyViewController *)viewC;
+
+- (void)maplyViewControllerDidStopMoving:(MaplyViewController *)viewC;
+
 @end
 
 /** @brief This view controller implements a map.
@@ -150,6 +154,8 @@
     @details In 3D map mode this is the height from which the user is viewing the map.  Maps are usually -PI to +PI along their horizontal edges.
   */
 @property (nonatomic,assign) float height;
+
+@property (nonatomic,assign) double rotAngle;
 
 /** @brief The box the view point can be in.
     @details This is the box the view point is allowed to be within.  The view controller will constrain it to be within that box.  Coordinates are in geographic (radians).

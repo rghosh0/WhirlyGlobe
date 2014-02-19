@@ -37,6 +37,7 @@ using namespace Maply;
     // Content scale for scroll view mode
     float scale;
     bool scheduledToDraw;
+    bool isPanning,isRotating,isZooming,isAnimating;
 }
 
 - (id)init
@@ -319,7 +320,7 @@ using namespace Maply;
         [super viewWillDisappear:animated];
     
 	// Stop tracking notifications
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:MaplyTapMsg object:nil];
+    [self unregisterForEvents];
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
 }
 
@@ -329,6 +330,29 @@ using namespace Maply;
 - (void)registerForEvents
 {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(tapOnMap:) name:MaplyTapMsg object:nil];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pinchDidStart:) name:MaplyPinchDelegateDidStart object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pinchDidEnd:) name:MaplyPinchDelegateDidEnd object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(rotateDidStart:) name:MaplyRotateDelegateDidStart object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(rotateDidEnd:) name:MaplyRotateDelegateDidEnd object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animationDidStart:) name:kWKViewAnimationStarted object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animationDidEnd:) name:kWKViewAnimationEnded object:nil];
+}
+
+- (void)unregisterForEvents
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:MaplyTapMsg object:nil];
+    
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:MaplyPinchDelegateDidStart object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:MaplyPinchDelegateDidEnd object:nil];
+    
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:MaplyRotateDelegateDidStart object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:MaplyRotateDelegateDidEnd object:nil];
+    
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:kWKViewAnimationStarted object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:kWKViewAnimationEnded object:nil];
 }
 
 
@@ -422,6 +446,17 @@ using namespace Maply;
 }
 
 #pragma mark - Interaction
+
+- (double)rotAngle {
+    if (!mapView)
+        return nil;
+    return mapView.rotAngle;
+}
+
+- (void)setRotAngle:(double)rotAngle {
+    [mapView setRotAngle:rotAngle];
+}
+
 
 /// Return the view extents.  This is the box the view point is allowed to be within.
 - (void)getViewExtentsLL:(MaplyCoordinate *)ll ur:(MaplyCoordinate *)ur
@@ -786,5 +821,79 @@ using namespace Maply;
         return MaplyCoordinateMakeWithDegrees(0, 0);
     }
 }
+
+- (void) pinchDidStart:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+    
+    [self handleStartMoving];
+    isZooming = true;
+}
+
+- (void) pinchDidEnd:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+    
+    isZooming = false;
+    [self handleStopMoving];
+}
+
+- (void) rotateDidStart:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+    
+    [self handleStartMoving];
+    isRotating = true;
+}
+
+- (void) rotateDidEnd:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+    
+    isRotating = false;
+    [self handleStopMoving];
+}
+- (void) animationDidStart:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+    
+    [self handleStartMoving];
+    isAnimating = true;
+}
+
+- (void) animationDidEnd:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+    
+    isAnimating = false;
+    [self handleStopMoving];
+}
+
+- (void) handleStartMoving
+{
+    if (!isPanning && !isRotating && !isZooming && !isAnimating)
+    {
+        if ([_delegate respondsToSelector:@selector(maplyViewControllerDidStartMoving:)])
+            [_delegate maplyViewControllerDidStartMoving:self];
+    }
+}
+
+- (void)handleStopMoving
+{
+    if (isPanning || isRotating || isZooming || isAnimating)
+        return;
+
+    if ([_delegate respondsToSelector:@selector(maplyViewControllerDidStopMoving:)])
+        [_delegate maplyViewControllerDidStopMoving:self];
+
+}
+
+
 
 @end

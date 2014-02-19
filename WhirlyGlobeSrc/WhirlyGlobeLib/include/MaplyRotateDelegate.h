@@ -22,6 +22,9 @@
 #import <UIKit/UIKit.h>
 #import "MaplyView.h"
 
+#define MaplyRotateDelegateDidStart @"MaplyRotateDelegateDidStart"
+#define MaplyRotateDelegateDidEnd @"MaplyRotateDelegateDidEnd"
+
 namespace Maply
 {
     /// The state of our rotation

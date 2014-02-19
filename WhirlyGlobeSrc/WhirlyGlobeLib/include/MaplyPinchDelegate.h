@@ -21,7 +21,12 @@
 #import <Foundation/Foundation.h>
 #import "MaplyZoomGestureDelegate.h"
 
+#define MaplyPinchDelegateDidStart @"MaplyPinchDelegateDidStart"
+#define MaplyPinchDelegateDidEnd @"MaplyPinchDelegateDidEnd"
+
 @interface MaplyPinchDelegate : MaplyZoomGestureDelegate
+
+- (instancetype)initWithMapView:(MaplyView *)inView;
 
 /// Create a pinch gesture and a delegate and wire them up to the given UIView
 + (MaplyPinchDelegate *)pinchDelegateForView:(UIView *)view mapView:(MaplyView *)mapView;

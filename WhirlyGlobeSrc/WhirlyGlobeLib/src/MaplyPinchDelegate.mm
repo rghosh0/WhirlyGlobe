@@ -29,6 +29,14 @@ using namespace WhirlyKit;
 {
     /// If we're zooming, where we started
     float startZ;
+    bool isPinching;
+}
+
+- (instancetype)initWithMapView:(MaplyView *)inView {
+   if ((self = [super initWithMapView:inView])) {
+        isPinching = false;
+    }
+   return self;
 }
 
 + (MaplyPinchDelegate *)pinchDelegateForView:(UIView *)view mapView:(MaplyView *)mapView
@@ -47,13 +55,27 @@ using namespace WhirlyKit;
 	UIGestureRecognizerState theState = pinch.state;
 	WhirlyKitEAGLView  *glView = (WhirlyKitEAGLView  *)pinch.view;
 	WhirlyKitSceneRendererES *sceneRenderer = glView.renderer;
+
+    if ([pinch numberOfTouches] < 2)
+    {
+        if (isPinching)
+        {
+            [[NSNotificationCenter defaultCenter] postNotificationName:MaplyPinchDelegateDidEnd object:mapView];
+        }
+        isPinching = false;
+        return;
+    }
     
 	switch (theState)
 	{
 		case UIGestureRecognizerStateBegan:
+        {
 			// Store the starting Z for comparison
 			startZ = mapView.loc.z();
+            isPinching = true;
             [mapView cancelAnimation];
+            [[NSNotificationCenter defaultCenter] postNotificationName:MaplyPinchDelegateDidStart object:mapView];
+        }
 			break;
 		case UIGestureRecognizerStateChanged:
         {
@@ -67,6 +89,14 @@ using namespace WhirlyKit;
             }
         }
 			break;
+        case UIGestureRecognizerStateFailed:
+        case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateEnded:
+        {
+            [[NSNotificationCenter defaultCenter] postNotificationName:MaplyPinchDelegateDidEnd object:mapView];
+            isPinching = false;
+        }
+            break;
         default:
             break;
 	}
