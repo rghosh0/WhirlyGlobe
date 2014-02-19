@@ -419,11 +419,8 @@ typedef std::set<ThreadChanges> ThreadChangeSet;
             wgMarker.texIDs.push_back(tex.texID);
         wgMarker.width = marker.size.width;
         wgMarker.height = marker.size.height;
-        if (marker.rotation != 0.0)
-        {
-            wgMarker.rotation = marker.rotation;
-            wgMarker.lockRotation = true;
-        }
+        wgMarker.rotation = marker.rotation;
+        wgMarker.lockRotation = marker.lockRotation;
         if (marker.selectable)
         {
             wgMarker.isSelectable = true;
