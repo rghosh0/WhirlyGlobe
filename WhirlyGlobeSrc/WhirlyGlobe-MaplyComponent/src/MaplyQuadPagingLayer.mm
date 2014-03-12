@@ -668,4 +668,23 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
     [quadLayer refresh];
 }
 
+- (void)runForAllData:(runForDataBlock)block {
+    pthread_mutex_lock(&tileSetLock);
+    for (QuadPagingLoadedTileSet::iterator it = tileSet.begin();
+         it != tileSet.end(); ++it)
+    {
+        if ((*it)->replaceCompObjs) {
+            for (MaplyComponentObject *compObj in (*it)->replaceCompObjs) {
+                block(_viewC, compObj);
+            }
+        }
+        if ((*it)->addCompObjs) {
+            for (MaplyComponentObject *compObj in (*it)->addCompObjs) {
+                block(_viewC, compObj);
+            }
+        }
+    }
+    pthread_mutex_unlock(&tileSetLock);
+}
+
 @end
