@@ -171,6 +171,8 @@
   */
 @property (nonatomic,assign) float height;
 
+@property (nonatomic,assign) double rotAngle;
+
 /** @brief The box the view point can be in.
     @details This is the box the view point is allowed to be within.  The view controller will constrain it to be within that box.  Coordinates are in geographic (radians).
   */
