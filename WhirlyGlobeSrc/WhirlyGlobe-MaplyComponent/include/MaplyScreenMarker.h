@@ -73,6 +73,8 @@
  */
 @property (nonatomic,strong) NSObject *userObject;
 
+@property (nonatomic,assign) bool lockRotation;
+
 @end
 
 typedef MaplyScreenMarker WGScreenMarker;
