@@ -63,8 +63,8 @@ using namespace WhirlyKit;
             if (self.minZoom >= self.maxZoom || (self.minZoom < newZ && newZ < self.maxZoom))
             {
                 [mapView setLoc:Point3d(curLoc.x(),curLoc.y(),newZ)];
-                if (![self withinBounds:mapView.loc view:glView renderer:sceneRenderer])
-                    [mapView setLoc:curLoc];
+//                if (![self withinBounds:mapView.loc view:glView renderer:sceneRenderer])
+//                    [mapView setLoc:curLoc];
             }
         }
 			break;
