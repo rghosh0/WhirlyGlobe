@@ -710,7 +710,7 @@ using namespace Maply;
     CGPoint ulScreen = [self screenPointFromGeo:ul];
     CGPoint lrScreen = [self screenPointFromGeo:lr];
     
-    return lrScreen.x - ulScreen.x < frame.size.width && lrScreen.y - ulScreen.y < frame.size.height;
+    return ABS(lrScreen.x - ulScreen.x) < frame.size.width && ABS(lrScreen.y - ulScreen.y) < frame.size.height;
 }
 
 - (float)findHeightToViewBounds:(MaplyBoundingBox *)bbox pos:(MaplyCoordinate)pos
