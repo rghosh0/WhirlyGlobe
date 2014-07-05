@@ -1082,7 +1082,7 @@
 					"../../third-party/KissXML/KissXML/",
 					/usr/include/libxml2,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				OTHER_CFLAGS = "-DEIGEN_MPL2_ONLY";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "WhirlyGlobe-MaplyComponent";
@@ -1109,12 +1109,12 @@
 					"../../third-party/KissXML/KissXML/",
 					/usr/include/libxml2,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				OTHER_CFLAGS = "-DEIGEN_MPL2_ONLY";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "WhirlyGlobe-MaplyComponent";
 				SKIP_INSTALL = YES;
-				STRIP_STYLE = all;
+				STRIP_STYLE = debugging;
 			};
 			name = Release;
 		};
