@@ -296,7 +296,7 @@ static const NSTimeInterval AvailableFrame = 4.0/5.0;
     while (_quadtree->leastImportantNode(remNodeInfo))
     {
         _quadtree->removeTile(remNodeInfo.ident);
-        [_loader quadDisplayLayer:self unloadTile:remNodeInfo];
+        [_loader quadDisplayLayer:self unloadTile:&remNodeInfo];
         
         didSomething = true;
     }
@@ -322,7 +322,7 @@ static const NSTimeInterval AvailableFrame = 4.0/5.0;
                     std::vector<Quadtree::Identifier> tilesToRemove;
                     _quadtree->addTile(nodeInfo, tilesToRemove);
                                 
-                    [_loader quadDisplayLayer:self loadTile:nodeInfo ];
+                    [_loader quadDisplayLayer:self loadTile:&nodeInfo ];
                                     
                     // Remove the old tiles
                     for (unsigned int ii=0;ii<tilesToRemove.size();ii++)
@@ -331,7 +331,7 @@ static const NSTimeInterval AvailableFrame = 4.0/5.0;
 //                    NSLog(@"Quad tree removed (%d,%d,%d)",thisIdent.x,thisIdent.y,thisIdent.level);
                         
                         Quadtree::NodeInfo remNodeInfo = _quadtree->generateNode(thisIdent);
-                        [_loader quadDisplayLayer:self unloadTile:remNodeInfo];           
+                        [_loader quadDisplayLayer:self unloadTile:&remNodeInfo];           
                     }
 //            NSLog(@"Quad loaded node (%d,%d,%d) = %.4f",nodeInfo.ident.x,nodeInfo.ident.y,nodeInfo.ident.level,nodeInfo.importance);            
                 } else {
@@ -357,7 +357,6 @@ static const NSTimeInterval AvailableFrame = 4.0/5.0;
             }
         }
         
-        didSomething = true;
     }
 
     // Let the loader know we're done with this eval step
@@ -457,7 +456,7 @@ static const NSTimeInterval AvailableFrame = 4.0/5.0;
     {
         
         _quadtree->removeTile(remNodeInfo.ident);
-        [_loader quadDisplayLayer:self unloadTile:remNodeInfo];        
+        [_loader quadDisplayLayer:self unloadTile:&remNodeInfo];        
     }
     waitForLocalLoads = true;
     

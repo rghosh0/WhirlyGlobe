@@ -210,8 +210,11 @@ void Quadtree::addTile(NodeInfo nodeInfo, std::vector<Identifier> &tilesRemoved)
 void Quadtree::removeTile(Identifier ident)
 {
     Node *node = getNode(ident);
-    if (node)
-        removeNode(node);
+    if (!node)
+        return;
+    if (node->hasChildren())
+        return;
+    removeNode(node);
 }
     
 Quadtree::NodeInfo Quadtree::generateNode(Identifier ident)
