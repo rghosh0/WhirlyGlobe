@@ -172,7 +172,7 @@ void ScreenSpaceGenerator::addToDrawables(ConvexShape *shape,WhirlyKitRendererFr
     {
         SimpleGeometry &geom = shape->geom[si];
 
-        DrawableMap::iterator it = drawables.find(TextureAndProgram(geom.texID,geom.programID));
+        DrawableMap::iterator it = drawables.find(TextureAndProgramAndDrawPriority(geom.texID,geom.programID,shape->drawPriority));
         BasicDrawable *draw = NULL;
         if (it == drawables.end())
         {
@@ -180,7 +180,7 @@ void ScreenSpaceGenerator::addToDrawables(ConvexShape *shape,WhirlyKitRendererFr
             draw->setType(GL_TRIANGLES);
             draw->setTexId(0,geom.texID);
             draw->setProgram(geom.programID);
-            drawables[TextureAndProgram(geom.texID,geom.programID)] = draw;
+            drawables[TextureAndProgramAndDrawPriority(geom.texID,geom.programID,shape->drawPriority)] = draw;
         } else
             draw = it->second;
 

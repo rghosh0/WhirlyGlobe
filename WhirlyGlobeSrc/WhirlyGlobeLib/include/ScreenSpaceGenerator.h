@@ -44,23 +44,27 @@ public:
     void generateDrawables(WhirlyKitRendererFrameInfo *frameInfo,std::vector<DrawableRef> &drawables,std::vector<DrawableRef> &screenDrawables);
     
     /// Used to organize the drawable map as we build it
-    class TextureAndProgram
+    class TextureAndProgramAndDrawPriority
     {
     public:
-        TextureAndProgram() : texID(EmptyIdentity), programID(EmptyIdentity) { }
-        TextureAndProgram(SimpleIdentity texID,SimpleIdentity programID) : texID(texID), programID(programID) { }
+        TextureAndProgramAndDrawPriority() : texID(EmptyIdentity), programID(EmptyIdentity), drawPriority(EmptyIdentity) { }
+        TextureAndProgramAndDrawPriority(SimpleIdentity texID,SimpleIdentity programID,SimpleIdentity drawPriority) : texID(texID), programID(programID), drawPriority(drawPriority) { }
         
-        SimpleIdentity texID,programID;
+        SimpleIdentity texID,programID,drawPriority;
         
-        bool operator < (const TextureAndProgram &that) const
+        bool operator < (const TextureAndProgramAndDrawPriority &that) const
         {
-            if (texID == that.texID)
+            if (texID == that.texID) {
+                if (programID == that.programID) {
+                    return drawPriority < that.drawPriority;
+                }
                 return programID < that.programID;
+            }
             return texID < that.texID;
         }
     };
     
-    typedef std::map<TextureAndProgram,BasicDrawable *> DrawableMap;
+    typedef std::map<TextureAndProgramAndDrawPriority,BasicDrawable *> DrawableMap;
     
     /// A simple geometric representation used in shapes
     class SimpleGeometry
