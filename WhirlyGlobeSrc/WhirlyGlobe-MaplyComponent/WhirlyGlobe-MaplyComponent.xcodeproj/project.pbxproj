@@ -1085,6 +1085,8 @@
 					"../../third-party/proj-4/src/",
 					"../../third-party/KissXML/KissXML/",
 					/usr/include/libxml2,
+					"../WhirlyGlobe-MaplyComponent/include/private/",
+					"../WhirlyGlobe-MaplyComponent/include/",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				OTHER_CFLAGS = "-DEIGEN_MPL2_ONLY";
@@ -1116,6 +1118,8 @@
 					"../../third-party/proj-4/src/",
 					"../../third-party/KissXML/KissXML/",
 					/usr/include/libxml2,
+					"../WhirlyGlobe-MaplyComponent/include/private/",
+					"../WhirlyGlobe-MaplyComponent/include/",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				OTHER_CFLAGS = "-DEIGEN_MPL2_ONLY";
