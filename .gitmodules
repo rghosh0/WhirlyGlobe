@@ -40,3 +40,6 @@
 [submodule "third-party/tinyxml2"]
 	path = third-party/tinyxml2
 	url = https://github.com/leethomason/tinyxml2
+[submodule "third-party/boost"]
+	path = third-party/boost
+	url = https://github.com/iNiKe/boost.git
