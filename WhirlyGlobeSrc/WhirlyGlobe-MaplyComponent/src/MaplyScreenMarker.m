@@ -30,6 +30,7 @@
     
     _selectable = true;
     _offset = CGPointMake(0, 0);
+    _rotation = 0.0;
     
     return self;
 }
