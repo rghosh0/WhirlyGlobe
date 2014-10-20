@@ -37,3 +37,6 @@
 [submodule "clipper2"]
 	path = third-party/clipper
 	url = https://github.com/mousebird/clipper
+[submodule "third-party/boost"]
+	path = third-party/boost
+	url = https://github.com/iNiKe/boost.git
