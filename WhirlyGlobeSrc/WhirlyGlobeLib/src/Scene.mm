@@ -22,7 +22,6 @@
 #import "GlobeView.h"
 #import "GlobeMath.h"
 #import "TextureAtlas.h"
-#import "ScreenSpaceGenerator.h"
 #import "ViewPlacementGenerator.h"
 #import "FontTextureManager.h"
 #import "SelectionManager.h"
@@ -41,19 +40,18 @@ namespace WhirlyKit
 {
     
 Scene::Scene()
+    : ssGen(NULL)
 {
 }
     
 void Scene::Init(WhirlyKit::CoordSystemDisplayAdapter *adapter,Mbr localMbr,unsigned int depth)
 {
+    ssGen = NULL;
+    
     pthread_mutex_init(&coordAdapterLock,NULL);
     coordAdapter = adapter;
     cullTree = new CullTree(adapter,localMbr,depth);
     
-    // Also toss in a screen space generator to share amongst the layers
-    ssGen = new ScreenSpaceGenerator(kScreenSpaceGeneratorShared,Point2d(0.1,0.1));
-    screenSpaceGeneratorID = ssGen->getId();
-    generators.insert(ssGen);
     // And put in a UIView placement generator for use in the main thread
     vpGen = new ViewPlacementGenerator(kViewPlacementGeneratorShared);
     generators.insert(vpGen);
@@ -407,6 +405,16 @@ void Scene::addSubTextures(const std::vector<SubTexture> &subTexes)
 {
     pthread_mutex_lock(&subTexLock);
     subTextureMap.insert(subTexes.begin(),subTexes.end());
+    pthread_mutex_unlock(&subTexLock);
+}
+    
+void Scene::removeSubTexture(SimpleIdentity subTexID)
+{
+    pthread_mutex_lock(&subTexLock);
+    SubTexture dumbTex(subTexID);
+    SubTextureSet::iterator it = subTextureMap.find(dumbTex);
+    if (it != subTextureMap.end())
+        subTextureMap.erase(it);
     pthread_mutex_unlock(&subTexLock);
 }
 

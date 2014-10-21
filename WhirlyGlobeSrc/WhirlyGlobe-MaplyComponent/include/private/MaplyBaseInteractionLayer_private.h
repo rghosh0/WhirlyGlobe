@@ -26,11 +26,13 @@
 #import "ImageTexture_private.h"
 #import "MaplyBaseViewController.h"
 #import "MaplyQuadImageTilesLayer.h"
+#import "MaplyTextureAtlas_private.h"
 
 @interface MaplyBaseInteractionLayer : NSObject<WhirlyKitLayer>
 {
 @public
     WhirlyKitView * __weak visualView;
+    WhirlyKitGLSetupInfo *glSetupInfo;
 
     pthread_mutex_t selectLock;
     // Use to map IDs in the selection layer to objects the user passed in
@@ -49,6 +51,13 @@
     pthread_mutex_t userLock;
     // Component objects created for the user
     NSMutableSet *userObjects;
+    
+    // Texture atlas manager
+    MaplyTextureAtlasGroup *atlasGroup;
+    
+    pthread_mutex_t tempContextLock;
+    // We keep a set of temporary OpenGL ES contexts around for threads that don't have them
+    std::set<EAGLContext *> tempContexts;
 }
 
 // Note: Not a great idea to be passing this in
@@ -112,7 +121,10 @@
 - (MaplyTexture *)addTexture:(UIImage *)image imageFormat:(MaplyQuadImageFormat)imageFormat wrapFlags:(int)wrapFlags mode:(MaplyThreadMode)threadMode;
 
 // Explicitly remove a texture
-- (void)removeTexture:(MaplyTexture *)texture;
+- (void)removeTextures:(NSArray *)textures mode:(MaplyThreadMode)threadMode;
+
+// Add a texture to an atlas
+- (MaplyTexture *)addTextureToAtlas:(UIImage *)image imageFormat:(MaplyQuadImageFormat)imageFormat wrapFlags:(int)wrapFlags mode:(MaplyThreadMode)threadMode;
 
 // Start collecting changes for this thread
 - (void)startChanges;
@@ -126,7 +138,7 @@
 - (MaplyTexture *)addImage:(id)image imageFormat:(MaplyQuadImageFormat)imageFormat wrapFlags:(int)wrapFlags mode:(MaplyThreadMode)threadMode;
 
 // Remove the texture associated with an image  or just decrement its reference count
-- (void)removeImageTexture:(MaplyTexture *)tex;
+- (void)removeImageTexture:(MaplyTexture *)tex changes:(WhirlyKit::ChangeSet &)changes;
 
 // Do a point in poly check for vectors we're representing
 - (NSObject *)findVectorInPoint:(WhirlyKit::Point2f)pt;

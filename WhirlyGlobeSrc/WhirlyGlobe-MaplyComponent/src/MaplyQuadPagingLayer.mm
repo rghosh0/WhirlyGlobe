@@ -232,6 +232,35 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
     ur->y = geoMbr.ur().y();
 }
 
+- (void)geoBoundsForTileD:(MaplyTileID)tileID ll:(MaplyCoordinateD *)ll ur:(MaplyCoordinateD *)ur
+{
+    if (!quadLayer || !quadLayer.quadtree || !scene || !scene->getCoordAdapter())
+        return;
+    
+    Point2d mbrLL,mbrUR;
+    quadLayer.quadtree->generateMbrForNode(WhirlyKit::Quadtree::Identifier(tileID.x,tileID.y,tileID.level),mbrLL,mbrUR);
+    
+    CoordSystem *wkCoordSys = quadLayer.coordSys;
+    Point2d pts[4];
+    pts[0] = wkCoordSys->localToGeographicD(Point3d(mbrLL.x(),mbrLL.y(),0.0));
+    pts[1] = wkCoordSys->localToGeographicD(Point3d(mbrUR.x(),mbrLL.y(),0.0));
+    pts[2] = wkCoordSys->localToGeographicD(Point3d(mbrUR.x(),mbrUR.y(),0.0));
+    pts[3] = wkCoordSys->localToGeographicD(Point3d(mbrLL.x(),mbrUR.y(),0.0));
+    Point2d minPt(pts[0].x(),pts[0].y()),  maxPt(pts[0].x(),pts[0].y());
+    for (unsigned int ii=1;ii<4;ii++)
+    {
+        minPt.x() = std::min(minPt.x(),pts[ii].x());
+        minPt.y() = std::min(minPt.y(),pts[ii].y());
+        maxPt.x() = std::max(maxPt.x(),pts[ii].x());
+        maxPt.y() = std::max(maxPt.y(),pts[ii].y());
+    }
+    
+    ll->x = minPt.x();
+    ll->y = minPt.y();
+    ur->x = maxPt.x();
+    ur->y = maxPt.y();
+}
+
 - (void)boundsforTile:(MaplyTileID)tileID ll:(MaplyCoordinate *)ll ur:(MaplyCoordinate *)ur
 {
     Mbr mbr = quadLayer.quadtree->generateMbrForNode(WhirlyKit::Quadtree::Identifier(tileID.x,tileID.y,tileID.level));
@@ -410,6 +439,17 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
 
 #pragma mark - WhirlyKitQuadLoader
 
+- (int)numFrames
+{
+    return 1;
+}
+
+- (int)currentFrame
+{
+    return -1;
+}
+
+
 - (void)setQuadLayer:(WhirlyKitQuadDisplayLayer *)layer
 {
     quadLayer = layer;
@@ -572,7 +612,7 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
 - (void)loadFailNotify:(MaplyTileIDObject *)tileIDObj
 {
     MaplyTileID tileID = tileIDObj.tileID;
-    [quadLayer loader:self tileDidNotLoad:Quadtree::Identifier(tileID.x,tileID.y,tileID.level)];
+    [quadLayer loader:self tileDidNotLoad:Quadtree::Identifier(tileID.x,tileID.y,tileID.level) frame:-1];
 }
 
 // If it failed, clear out the tile
@@ -683,7 +723,7 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
 - (void)loadNotify:(MaplyTileIDObject *)tileIDObj
 {
     MaplyTileID tileID = tileIDObj.tileID;
-    [quadLayer loader:self tileDidLoad:Quadtree::Identifier(tileID.x,tileID.y,tileID.level)];
+    [quadLayer loader:self tileDidLoad:Quadtree::Identifier(tileID.x,tileID.y,tileID.level) frame:-1];
 }
 
 - (void)tileDidLoad:(MaplyTileID)tileID

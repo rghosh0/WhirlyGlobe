@@ -84,6 +84,7 @@
         [self resolveVisibility:styleEntry settings:settings desc:subStyle->desc];
       
         if(!fileName || [fileName rangeOfString:@"["].location == NSNotFound)
+        {
             subStyle->markerImage = [MaplyIconManager iconForName:fileName
                                                              size:CGSizeMake(settings.markerScale*subStyle->width+2,
                                                                              settings.markerScale*subStyle->height+2)
@@ -91,7 +92,9 @@
                                                       circleColor:subStyle->fillColor
                                                        strokeSize:settings.markerScale*subStyle->strokeWidth
                                                       strokeColor:subStyle->strokeColor];
-        else
+            if ([subStyle->markerImage isKindOfClass:[NSNull class]])
+                subStyle->markerImage = nil;
+        } else
             subStyle->markerImageTemplate = fileName;
 
         [subStyles addObject:subStyle];
@@ -130,9 +133,7 @@
 
             if (marker.image) {
                 marker.loc = [vec center];
-                // Note: Debugging
-                marker.layoutImportance = 10.0;
-//                marker.layoutImportance = settings.markerImportance;
+                marker.layoutImportance = settings.markerImportance;
                 if (marker.image)
                 {
                     marker.size = ((UIImage *)marker.image).size;

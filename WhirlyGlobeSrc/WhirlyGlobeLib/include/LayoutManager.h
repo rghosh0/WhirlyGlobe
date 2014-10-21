@@ -26,6 +26,8 @@
 #import "Scene.h"
 #import "SceneRendererES.h"
 #import "GlobeLayerViewWatcher.h"
+#import "ScreenSpaceBuilder.h"
+#import "SelectionManager.h"
 
 namespace WhirlyKit
 {
@@ -43,31 +45,24 @@ namespace WhirlyKit
  by the layout engine.  We'll manipulate its offset and enable/disable it
  but won't otherwise change it.
  */
-class LayoutObject : public Identifiable
+class LayoutObject : public ScreenSpaceObject
 {
 public:
     LayoutObject();
     LayoutObject(SimpleIdentity theId);
     
-    /// Whether or not this is active
-    bool enable;
-    /// Any other objects we want to enable or disable in connection with this one.
-    /// Think map icon.
-    WhirlyKit::SimpleIDSet auxIDs;
-    /// Location in display coordinate system
-    WhirlyKit::Point3d dispLoc;
-    /// Size (in pixels) of the object we're laying out
-    WhirlyKit::Point2f size;
-    /// If we're hovering around an icon, this is its size in pixels.  Zero means its just us.
-    WhirlyKit::Point2f iconSize;
-    /// Rotation of the object
-    float rotation;
-    /// If set, keep the object upright
-    bool keepUpright;
-    /// Minimum visiblity
-    float minVis;
-    /// Maximum visibility
-    float maxVis;
+    // Set the layout size from width/height
+    void setLayoutSize(const Point2d &layoutSize,const Point2d &offset);
+    
+    // Set the selection size from width/height
+    void setSelectSize(const Point2d &layoutSize,const Point2d &offset);
+
+    // Size to use for laying out
+    std::vector<Point2d> layoutPts;
+    
+    // Size to use for selection
+    std::vector<Point2d> selectPts;
+
     /// This is used to sort objects for layout.  Bigger is more important.
     float importance;
     /// Options for where to place this object:  WhirlyKitLayoutPlacementLeft, WhirlyKitLayoutPlacementRight,
@@ -123,7 +118,10 @@ public:
     
     /// Add objects for layout (thread safe)
     void addLayoutObjects(const std::vector<LayoutObject> &newObjects);
-    
+
+    /// Add objects for layout (thread safe)
+    void addLayoutObjects(const std::vector<LayoutObject *> &newObjects);
+
     /// Remove objects for layout (thread safe)
     void removeLayoutObjects(const SimpleIDSet &oldObjects);
     
@@ -135,9 +133,12 @@ public:
     
     /// True if we've got changes since the last update
     bool hasChanges();
-        
+    
+    /// Return the active objects in a form the selection manager can handle
+    void getScreenSpaceObjects(const SelectionManager::PlacementInfo &pInfo,std::vector<ScreenSpaceObjectLocation> &screenSpaceObjs);
+    
 protected:
-    void runLayoutRules(WhirlyKitViewState *viewState);
+    bool runLayoutRules(WhirlyKitViewState *viewState);
     
     pthread_mutex_t layoutLock;
     /// If non-zero the maximum number of objects we'll display at once
@@ -146,6 +147,8 @@ protected:
     bool hasUpdates;
     /// Objects we're controlling the placement for
     LayoutEntrySet layoutObjects;
+    /// Drawables created on the last round
+    SimpleIDSet drawIDs;
 };
 
 }

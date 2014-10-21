@@ -114,7 +114,19 @@
                 width += 2;
             else
                 width += 1;
-            MaplyLinearTextureBuilder *lineTexBuilder = [[MaplyLinearTextureBuilder alloc] initWithSize:CGSizeMake(8,patternLength)];
+            
+            // Let's keep the texture a power of 2
+            int texWidth = 4;
+            if (width <= 4)
+                texWidth=  4;
+            else if (width <= 8)
+                texWidth = 8;
+            else if (width <= 16)
+                texWidth = 16;
+            else
+                texWidth = 32;
+                
+            MaplyLinearTextureBuilder *lineTexBuilder = [[MaplyLinearTextureBuilder alloc] initWithSize:CGSizeMake(texWidth,patternLength)];
             [lineTexBuilder setPattern:dashComponents];
             lineTexBuilder.opacityFunc = MaplyOpacitySin3;
             UIImage *lineImage = [lineTexBuilder makeImage];
@@ -126,9 +138,13 @@
             desc[kMaplyWideVecCoordType] = kMaplyWideVecCoordTypeScreen;
             desc[kMaplyWideVecTexRepeatLen] = @(repeatLen);
             desc[kMaplyVecWidth] = @(width);
-            
+        } else {
+            // If we're not using wide vectors, figure out the width
+            desc[kMaplyVecWidth] = @(settings.lineScale * strokeWidth * settings.oldVecWidthScale);
         }
         
+        desc[kMaplySelectable] = @(settings.selectable);
+
         [self resolveVisibility:styleEntry settings:settings desc:desc];
         
         [subStyles addObject:desc];

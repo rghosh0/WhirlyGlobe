@@ -55,7 +55,7 @@
     return _pixelsPerSide;
 }
 
-- (bool)tileIsLocal:(MaplyTileID)tileID
+- (bool)tileIsLocal:(MaplyTileID)tileID frame:(int)frame
 {
     return true;
 }
@@ -65,16 +65,24 @@ static const int debugColors[MaxDebugColors] = {0x86812D, 0x5EB9C9, 0x2A7E3E, 0x
 
 - (MaplyImageTile *)imageForTile:(MaplyTileID)tileID
 {
+    return [self imageForTile:tileID frame:-1];
+}
+
+- (MaplyImageTile *)imageForTile:(MaplyTileID)tileID frame:(int)frame
+{
     NSMutableArray *images = [NSMutableArray array];
     
     // Slow down for testing
-    usleep(0.215 * 1e6);
+    usleep(0.05);
     
 //    NSLog(@"Loading tile: %d: (%d,%d)",tileID.level,tileID.x,tileID.y);
     
     // One for each layer we're
-    for (unsigned int ii=0;ii<_depth;ii++)
+//    for (unsigned int ii=0;ii<_depth;ii++)
     {
+        // Random delay
+        usleep(drand48()* 0.215 * 1e6);
+
         CGSize size;  size = CGSizeMake(128,128);
         UIGraphicsBeginImageContext(size);
         
@@ -83,19 +91,35 @@ static const int debugColors[MaxDebugColors] = {0x86812D, 0x5EB9C9, 0x2A7E3E, 0x
         float red = (((hexColor) >> 16) & 0xFF)/255.0;
         float green = (((hexColor) >> 8) & 0xFF)/255.0;
         float blue = (((hexColor) >> 0) & 0xFF)/255.0;
-        UIColor *backColor = [UIColor colorWithRed:red green:green blue:blue alpha:1.0];
-        [backColor setFill];
+        UIColor *backColor = nil;
+        UIColor *fillColor = [UIColor whiteColor];
+        if (_transparentMode)
+        {
+            backColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:1.0];
+            fillColor = [UIColor colorWithRed:red green:green blue:blue alpha:1.0];
+        } else
+            backColor = [UIColor colorWithRed:red green:green blue:blue alpha:1.0];
         CGContextRef ctx = UIGraphicsGetCurrentContext();
-        CGContextFillRect(ctx, CGRectMake(0,0,size.width,size.height));
+
+        // Draw a rectangle around the edges for testing
+        [backColor setFill];
+        if (_transparentMode)
+        {
+            CGContextFillRect(ctx, CGRectMake(0, 0, size.width, size.height));
+            [fillColor setStroke];
+            CGContextStrokeRect(ctx, CGRectMake(0, 0, size.width-1, size.height-1));
+        } else {
+            CGContextFillRect(ctx, CGRectMake(0,0,size.width,size.height));
+        }
         
+        [fillColor setStroke];
+        [fillColor setFill];
         CGContextSetTextDrawingMode(ctx, kCGTextFill);
-        [[UIColor whiteColor] setStroke];
-        [[UIColor whiteColor] setFill];
         NSString *textStr = nil;
         if (_depth == 1)
             textStr = [NSString stringWithFormat:@"%d: (%d,%d)",tileID.level,tileID.x,tileID.y];
         else
-            textStr = [NSString stringWithFormat:@"%d: (%d,%d); %d",tileID.level,tileID.x,tileID.y,ii];
+            textStr = [NSString stringWithFormat:@"%d: (%d,%d); %d",tileID.level,tileID.x,tileID.y,frame];
         [textStr drawInRect:CGRectMake(0,0,size.width,size.height) withFont:[UIFont systemFontOfSize:24.0]];
         
         // Grab the image and shut things down

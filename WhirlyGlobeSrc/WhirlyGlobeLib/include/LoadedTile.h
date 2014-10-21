@@ -148,6 +148,9 @@ public:
     bool buildTile(Quadtree::NodeInfo *nodeInfo,BasicDrawable **draw,BasicDrawable **skirtDraw,std::vector<Texture *> *texs,
               Point2f texScale,Point2f texOffset,std::vector<WhirlyKitLoadedImage *> *loadImages,WhirlyKitElevationChunk *elevData);
     
+    // Build the texture for a tile
+    Texture *buildTexture(WhirlyKitLoadedImage *loadImage);
+    
     // Flush updates out into the change requests
     bool flushUpdates(ChangeSet &changes);
     
@@ -249,14 +252,17 @@ public:
     void calculateSize(Quadtree *quadTree,CoordSystemDisplayAdapter *coordAdapt,CoordSystem *coordSys);
     
     /// Build the data needed for a scene representation
-    bool addToScene(TileBuilder *tileBuilder,std::vector<WhirlyKitLoadedImage *>loadImages,int currentImage0,int currentImage1,WhirlyKitElevationChunk *loadElev,std::vector<WhirlyKit::ChangeRequest *> &changeRequests);
+    bool addToScene(TileBuilder *tileBuilder,std::vector<WhirlyKitLoadedImage *>loadImages,int frame,int currentImage0,int currentImage1,WhirlyKitElevationChunk *loadElev,std::vector<WhirlyKit::ChangeRequest *> &changeRequests);
     
+    /// Update the texture in an existing tile.  This is for loading frames of animation
+    bool updateTexture(TileBuilder *tileBuilder,WhirlyKitLoadedImage *loadImage,int frame,std::vector<WhirlyKit::ChangeRequest *> &changeRequests);
+
     /// Remove data from scene.  This just sets up the changes requests.
     /// They must still be passed to the scene
     void clearContents(TileBuilder *tileBuilder,std::vector<WhirlyKit::ChangeRequest *> &changeRequests);
     
     /// Update what we're displaying based on the quad tree, particulary for children
-    void updateContents(TileBuilder *tileBuilder,LoadedTile *childTiles[],std::vector<WhirlyKit::ChangeRequest *> &changeRequests);
+    void updateContents(TileBuilder *tileBuilder,LoadedTile *childTiles[],int currentImage0,int currentImage1,std::vector<WhirlyKit::ChangeRequest *> &changeRequests);
     
     /// Switch to the given images
     void setCurrentImages(TileBuilder *tileBuilder,int whichImage0,int whichImage1,std::vector<WhirlyKit::ChangeRequest *> &changeRequests);
@@ -270,6 +276,8 @@ public:
     // Details of which node we're representing
     WhirlyKit::Quadtree::NodeInfo nodeInfo;
     
+    /// Set if this has been initialized (e.g. geometry was built at one point)
+    bool isInitialized;
     /// Set if this is just a placeholder (no geometry)
     bool placeholder;
     /// Set if this tile is in the process of loading
@@ -290,6 +298,8 @@ public:
     Point3d dispCenter;
     /// Size in display coordinates
     double tileSize;
+    /// Where the textures live in the dynamic texture(s)
+    DynamicTextureAtlas::TextureRegion texRegion;
     
     // IDs for the various fake child geometry
     WhirlyKit::SimpleIdentity childDrawIds[4];
