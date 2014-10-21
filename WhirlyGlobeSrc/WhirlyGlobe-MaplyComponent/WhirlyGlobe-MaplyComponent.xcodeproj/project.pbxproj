@@ -1530,7 +1530,7 @@
 					/usr/include/libxml2/,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DEIGEN_MPL2_ONLY";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "WhirlyGlobe-MaplyComponent";
@@ -1566,7 +1566,7 @@
 					/usr/include/libxml2/,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DEIGEN_MPL2_ONLY";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "WhirlyGlobe-MaplyComponent";
