@@ -2526,7 +2526,6 @@
 					"../../third-party/proj-4/src/",
 					"../../third-party/glues/include/",
 					./WhirlyGlobeLib/include/,
-					"../../third-party/boost/boost/",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				ONLY_ACTIVE_ARCH = NO;
@@ -2573,7 +2572,6 @@
 					"../../third-party/proj-4/src/",
 					"../../third-party/glues/include/",
 					./WhirlyGlobeLib/include/,
-					"../../third-party/boost/boost/",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				ONLY_ACTIVE_ARCH = NO;
