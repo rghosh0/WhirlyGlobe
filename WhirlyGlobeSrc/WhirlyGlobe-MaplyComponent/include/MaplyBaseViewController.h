@@ -82,6 +82,12 @@ typedef enum {MaplyThreadCurrent,MaplyThreadAny} MaplyThreadMode;
   */
 @property (nonatomic,assign) bool threadPerLayer;
 
+/** @brief Set the offset for the screen space objects.
+    @details In general you want the screen space objects to appear on top of everything else.  There used to be structural versions for this, but now you can mix and match where everything appears.  This controls the offset that's used to push screen space objects behind everything else in the list (and thus, on top).
+    @details If you set this to 0, you can control the ordering of everything more precisely.
+ */
+@property (nonatomic,assign) int screenObjectDrawPriorityOffset;
+
 /** @brief Clear all the currently active lights.
     @details There are a default set of lights, so you'll want to do this before adding your own.
   */
@@ -276,7 +282,20 @@ typedef enum {MaplyThreadCurrent,MaplyThreadAny} MaplyThreadMode;
 - (MaplyComponentObject *)instanceVectors:(MaplyComponentObject *)baseObj desc:(NSDictionary *)desc mode:(MaplyThreadMode)threadMode;
 
 /** @brief Add one or more widened vectors to the current scene.
-  */
+    @details Build widened vectors
+
+ @param desc The description dictionary with controls how vectors will be displayed.  It takes the following entries.
+
+ |Key|Type|Description|
+ |:--|:---|:----------|
+ |kMaplyColor|UIColor|Color we'll use for the features.|
+ |kMaplyVecWidth|NSNumber|If the geometry is not filled, this is the width of the GL lines.|
+ |kMaplyMinVis|NSNumber|This is viewer height above the globe or map.  The vectors will only be visible if the user is above this height.  Off by default.|
+ |kMaplyMaxVis|NSNumber|This is viewer height above the globe or map.  The vectors will only be visible if the user is below this height.  Off by default.|
+ |kMaplyDrawPriority|NSNumber|Geometry is sorted by this value before being drawn.  This ensures that some objects can come out on top of others.  By default this is kMaplyVectorDrawPriorityDefault.|
+ |kMaplyEnable|NSNumber boolean|On by default, but if off then the feature exists, but is not turned on.  It can be enabled with enableObjects:|
+
+ */
 - (MaplyComponentObject *)addWideVectors:(NSArray *)vectors desc:(NSDictionary *)desc mode:(MaplyThreadMode)threadMode;
 
 /// @brief This calls addWideVectors:desc:mode: with mode set to MaplyThreadAny

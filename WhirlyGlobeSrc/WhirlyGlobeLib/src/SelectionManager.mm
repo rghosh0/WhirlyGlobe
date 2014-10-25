@@ -22,7 +22,6 @@
 #import "NSDictionary+Stuff.h"
 #import "UIColor+Stuff.h"
 #import "GlobeMath.h"
-#import "ScreenSpaceGenerator.h"
 #import "MaplyView.h"
 #import "WhirlyGeometry.h"
 #import "Scene.h"
@@ -150,6 +149,48 @@ void SelectionManager::addSelectableRectSolid(SimpleIdentity selectId,Point3f *p
             poly.push_back(pts[corners[ii][jj]]);
         newSelect.polys.push_back(poly);
     }
+    
+    pthread_mutex_lock(&mutex);
+    polytopeSelectables.insert(newSelect);
+    pthread_mutex_unlock(&mutex);
+}
+
+void SelectionManager::addSelectableRectSolid(SimpleIdentity selectId,const BBox &bbox,float minVis,float maxVis,bool enable)
+{
+    std::vector<Point3f> pts;
+    pts.reserve(8);
+    bbox.asPoints(pts);
+    addSelectableRect(selectId,&pts[0],minVis,maxVis,enable);
+}
+
+void SelectionManager::addPolytope(SimpleIdentity selectId,const std::vector<std::vector<Point3d> > &surfaces,float minVis,float maxVis,bool enable)
+{
+    if (selectId == EmptyIdentity)
+        return;
+    
+    PolytopeSelectable newSelect;
+    newSelect.selectID = selectId;
+    newSelect.minVis = minVis;
+    newSelect.maxVis = maxVis;
+    newSelect.midPt = Point3f(0,0,0);
+    newSelect.enable = enable;
+    int numPts = 0;
+    for (unsigned int si=0;si<surfaces.size();si++)
+    {
+        const std::vector<Point3d> &surface = surfaces[si];
+        std::vector<Point3f> surface3f;
+        surface3f.reserve(surface.size());
+        for (unsigned int pi=0;pi<surface.size();pi++)
+        {
+            const Point3d &pt = surface[pi];
+            Point3f pt3f(pt.x(),pt.y(),pt.z());
+            newSelect.midPt += pt3f;
+            surface3f.push_back(pt3f);
+        }
+        numPts += surfaces.size();
+        newSelect.polys.push_back(surface3f);
+    }
+    newSelect.midPt /= numPts;
     
     pthread_mutex_lock(&mutex);
     polytopeSelectables.insert(newSelect);

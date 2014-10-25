@@ -32,6 +32,7 @@
 #import "MaplySharedAttributes.h"
 #import "MaplyCoordinateSystem_private.h"
 #import "MaplyTexture_private.h"
+#import "MaplyMatrix_private.h"
 
 using namespace Eigen;
 using namespace WhirlyKit;
@@ -530,6 +531,18 @@ typedef std::set<ThreadChanges> ThreadChangeSet;
         dict[key] = val;
 }
 
+- (void)resolveDrawPriority:(NSMutableDictionary *)desc offset:(int)offsetPriority
+{
+    NSNumber *setting = desc[@"drawPriority"];
+    int iVal = 0;
+    if ([setting isKindOfClass:[NSNumber class]])
+    {
+        iVal = [setting intValue];
+    }
+    iVal += offsetPriority;
+    desc[@"drawPriority"] = @(iVal);
+}
+
 // Actually add the markers.
 // Called in an unknown thread
 - (void)addScreenMarkersRun:(NSArray *)argArray
@@ -541,6 +554,7 @@ typedef std::set<ThreadChanges> ThreadChangeSet;
     
     // Might be a custom shader on these
     [self resolveShader:inDesc defaultShader:@(kToolkitDefaultScreenSpaceProgram)];
+    [self resolveDrawPriority:inDesc offset:_screenObjectDrawPriorityOffset];
     
     // Convert to WG markers
     NSMutableArray *wgMarkers = [NSMutableArray array];
@@ -548,21 +562,35 @@ typedef std::set<ThreadChanges> ThreadChangeSet;
     {
         WhirlyKitMarker *wgMarker = [[WhirlyKitMarker alloc] init];
         wgMarker.loc = GeoCoord(marker.loc.x,marker.loc.y);
-        MaplyTexture *tex = nil;
+        std::vector<MaplyTexture *> texs;
         if (marker.image)
         {
             if ([marker.image isKindOfClass:[UIImage class]])
             {
-                tex = [self addImage:marker.image imageFormat:MaplyImageIntRGBA mode:threadMode];
+                texs.push_back([self addImage:marker.image imageFormat:MaplyImageIntRGBA mode:threadMode]);
             } else if ([marker.image isKindOfClass:[MaplyTexture class]])
             {
-                tex = (MaplyTexture *)marker.image;
+                texs.push_back((MaplyTexture *)marker.image);
             }
-            compObj.textures.insert(tex);
+        } else if (marker.images)
+        {
+            for (id image in marker.images)
+            {
+                if ([image isKindOfClass:[UIImage class]])
+                    texs.push_back([self addImage:image imageFormat:MaplyImageIntRGBA mode:threadMode]);
+                else if ([image isKindOfClass:[MaplyTexture class]])
+                    texs.push_back((MaplyTexture *)image);
+            }
         }
+        if (texs.size() > 1)
+            wgMarker.period = marker.period;
+        compObj.textures.insert(texs.begin(),texs.end());
         wgMarker.color = marker.color;
-        if (tex)
-            wgMarker.texIDs.push_back(tex.texID);
+        if (!texs.empty())
+        {
+            for (unsigned int ii=0;ii<texs.size();ii++)
+                wgMarker.texIDs.push_back(texs[ii].texID);
+        }
         wgMarker.width = marker.size.width;
         wgMarker.height = marker.size.height;
         wgMarker.rotation = marker.rotation;
@@ -777,6 +805,7 @@ typedef std::set<ThreadChanges> ThreadChangeSet;
     
     // Might be a custom shader on these
     [self resolveShader:inDesc defaultShader:@(kToolkitDefaultScreenSpaceProgram)];
+    [self resolveDrawPriority:inDesc offset:_screenObjectDrawPriorityOffset];
 
     // Convert to WG screen labels
     NSMutableArray *wgLabels = [NSMutableArray array];
@@ -1471,6 +1500,40 @@ typedef std::set<ThreadChanges> ThreadChangeSet;
                 compObj.selectIDs.insert(newLin.selectID);
             }
             [ourShapes addObject:newLin];
+        } else if ([shape isKindOfClass:[MaplyShapeExtruded class]])
+        {
+            MaplyShapeExtruded *ex = (MaplyShapeExtruded *)shape;
+            WhirlyKitShapeExtruded *newEx = [[WhirlyKitShapeExtruded alloc] init];
+            Point3d loc(ex.center.x,ex.center.y,ex.height*ex.scale);
+            newEx.loc = loc;
+            newEx.thickness = ex.thickness*ex.scale;
+            newEx.transform = ex.transform.mat;
+            int numCoords = ex.numCoordPairs;
+            double *coords = ex.coordData;
+            std::vector<Point2d> pts;
+            pts.resize(numCoords);
+            for (unsigned int ii=0;ii<numCoords;ii++)
+            {
+                Point2d pt(coords[2*ii]*ex.scale,coords[2*ii+1]*ex.scale);
+                pts[ii] = pt;
+            }
+            newEx.pts = pts;
+            if (ex.color)
+            {
+                newEx.useColor = true;
+                RGBAColor color = [ex.color asRGBAColor];
+                newEx.color = color;
+            }
+            if (ex.selectable)
+            {
+                newEx.isSelectable = true;
+                newEx.selectID = Identifiable::genId();
+                pthread_mutex_lock(&selectLock);
+                selectObjectSet.insert(SelectObject(newEx.selectID,ex));
+                pthread_mutex_unlock(&selectLock);
+                compObj.selectIDs.insert(newEx.selectID);
+            }
+            [ourShapes addObject:newEx];
         }
     }
     

@@ -1,9 +1,9 @@
 /*
- *  WGScreenMarker.h
- *  WhirlyGlobeComponent
+ *  MaplyMatrix.h
+ *  WhirlyGlobe-MaplyComponent
  *
- *  Created by Steve Gifford on 7/21/12.
- *  Copyright 2011-2013 mousebird consulting
+ *  Created by Steve Gifford on 10/16/14.
+ *  Copyright 2011-2014 mousebird consulting
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,23 +18,11 @@
  *
  */
 
-#import "MaplyScreenMarker.h"
+#import "MaplyMatrix.h"
+#import <WhirlyGlobe.h>
 
-@implementation MaplyScreenMarker
+@interface MaplyMatrix ()
 
-- (id)init
-{
-    self = [super init];
-    if (!self)
-        return nil;
-    
-    _selectable = true;
-    _offset = CGPointMake(0, 0);
-    _rotation = 0.0;
-    _layoutSize = CGSizeMake(-1.0, -1.0);
-    _period = 5.0;
-    
-    return self;
-}
+@property (nonatomic,assign) Eigen::Matrix4d &mat;
 
 @end

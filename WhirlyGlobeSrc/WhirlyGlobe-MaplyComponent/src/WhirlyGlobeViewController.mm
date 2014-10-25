@@ -735,6 +735,10 @@ using namespace WhirlyGlobe;
 {
     WhirlyGlobeTapMessage *msg = note.object;
     
+    // Ignore taps from other view controllers
+    if (msg.view != glView)
+        return;
+    
     // Hand this over to the interaction layer to look for a selection
     // If there is no selection, it will call us back in the main thread
     [globeInteractLayer userDidTap:msg];
@@ -743,6 +747,12 @@ using namespace WhirlyGlobe;
 // Called when the user taps outside the globe.
 - (void) tapOutsideGlobe:(NSNotification *)note
 {
+    WhirlyGlobeTapMessage *msg = note.object;
+
+    // Ignore taps from other view controllers
+    if (msg.view != glView)
+        return;
+
     if (self.selection && _delegate && [_delegate respondsToSelector:@selector(globeViewControllerDidTapOutside:)])
         [_delegate globeViewControllerDidTapOutside:self];
 }

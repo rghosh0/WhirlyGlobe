@@ -23,6 +23,7 @@
 #import "ShapeManager.h"
 #import "ShapeDrawableBuilder.h"
 #import "SelectionManager.h"
+#import "Tesselator.h"
 
 using namespace Eigen;
 using namespace WhirlyKit;
@@ -78,6 +79,12 @@ void ShapeSceneRep::clearContents(SelectionManager *selectManager,ChangeSet &cha
 
 @implementation WhirlyKitShape
 
+// Return the center of this object in display space.  Used for offsetting drawables.
+- (Point3d)displayCenter:(CoordSystemDisplayAdapter *)coordAdapter
+{
+    return Point3d(0,0,0);
+}
+
 // Base shape doesn't make anything
 - (void)makeGeometryWithBuilder:(WhirlyKit::ShapeDrawableBuilder *)regBuilder triBuilder:(WhirlyKit::ShapeDrawableBuilderTri *)triBuilder scene:(WhirlyKit::Scene *)scene selectManager:(SelectionManager *)selectManager sceneRep:(ShapeSceneRep *)sceneRep
 {
@@ -92,6 +99,14 @@ static int CircleSamples = 10;
 static const float sqrt2 = 1.4142135623;
 
 @implementation WhirlyKitCircle
+
+- (Point3d)displayCenter:(CoordSystemDisplayAdapter *)coordAdapter
+{
+    Point3d localPt = coordAdapter->getCoordSystem()->geographicToLocal3d(_loc);
+    Point3d dispPt = coordAdapter->localToDisplay(localPt);
+    
+    return dispPt;
+}
 
 // Build the geometry for a circle in display space
 - (void)makeGeometryWithBuilder:(WhirlyKit::ShapeDrawableBuilder *)regBuilder triBuilder:(WhirlyKit::ShapeDrawableBuilderTri *)triBuilder scene:(WhirlyKit::Scene *)scene selectManager:(SelectionManager *)selectManager sceneRep:(ShapeSceneRep *)sceneRep
@@ -173,6 +188,14 @@ static const float sqrt2 = 1.4142135623;
 static const float SphereTessX = 10;
 static const float SphereTessY = 10;
 
+- (Point3d)displayCenter:(CoordSystemDisplayAdapter *)coordAdapter
+{
+    Point3d localPt = coordAdapter->getCoordSystem()->geographicToLocal3d(_loc);
+    Point3d dispPt = coordAdapter->localToDisplay(localPt);
+    
+    return dispPt;
+}
+
 - (void)makeGeometryWithBuilder:(WhirlyKit::ShapeDrawableBuilder *)regBuilder triBuilder:(WhirlyKit::ShapeDrawableBuilderTri *)triBuilder scene:(WhirlyKit::Scene *)scene selectManager:(SelectionManager *)selectManager sceneRep:(ShapeSceneRep *)sceneRep
 {
     CoordSystemDisplayAdapter *coordAdapter = scene->getCoordAdapter();
@@ -252,6 +275,14 @@ static const float SphereTessY = 10;
 @end
 
 @implementation WhirlyKitCylinder
+
+- (Point3d)displayCenter:(CoordSystemDisplayAdapter *)coordAdapter
+{
+    Point3d localPt = coordAdapter->getCoordSystem()->geographicToLocal3d(_loc);
+    Point3d dispPt = coordAdapter->localToDisplay(localPt);
+    
+    return dispPt;
+}
 
 static std::vector<Point3f> circleSamples;
 
@@ -354,6 +385,16 @@ static std::vector<Point3f> circleSamples;
 
 @implementation WhirlyKitShapeLinear
 
+- (Point3d)displayCenter:(CoordSystemDisplayAdapter *)coordAdapter
+{
+    if (!_pts.empty())
+    {
+        const Point3f &pt = _pts[_pts.size()/2];
+        return Point3d(pt.x(),pt.y(),pt.z());
+    } else
+        return Point3d(0,0,0);
+}
+
 - (void)makeGeometryWithBuilder:(WhirlyKit::ShapeDrawableBuilder *)regBuilder triBuilder:(WhirlyKit::ShapeDrawableBuilderTri *)triBuilder scene:(WhirlyKit::Scene *)scene selectManager:(SelectionManager *)selectManager sceneRep:(ShapeSceneRep *)sceneRep
 {
     RGBAColor theColor = (super.useColor ? super.color : [regBuilder->getShapeInfo().color asRGBAColor]);
@@ -365,6 +406,141 @@ static std::vector<Point3f> circleSamples;
     }
     
     regBuilder->addPoints(_pts, theColor, _mbr, _lineWidth, false);
+}
+
+@end
+
+@implementation WhirlyKitShapeExtruded
+
+- (id)init
+{
+    self = [super init];
+    
+    _transform = Eigen::Matrix4d::Identity();
+    
+    return self;
+}
+
+- (Point3d)displayCenter:(CoordSystemDisplayAdapter *)coordAdapter
+{
+    Point3d localPt = coordAdapter->getCoordSystem()->geographicToLocal3d(GeoCoord(_loc.x(),_loc.y()));
+    Point3d dispPt = coordAdapter->localToDisplay(localPt);
+    
+    return dispPt;
+}
+
+- (void)makeGeometryWithBuilder:(WhirlyKit::ShapeDrawableBuilder *)regBuilder triBuilder:(WhirlyKit::ShapeDrawableBuilderTri *)triBuilder scene:(WhirlyKit::Scene *)scene selectManager:(SelectionManager *)selectManager sceneRep:(ShapeSceneRep *)sceneRep
+{
+    CoordSystemDisplayAdapter *coordAdapter = scene->getCoordAdapter();
+    
+    RGBAColor theColor = (super.useColor ? super.color : [regBuilder->getShapeInfo().color asRGBAColor]);
+
+    Point3d localPt = coordAdapter->getCoordSystem()->geographicToLocal3d(GeoCoord(_loc.x(),_loc.y()));
+    Point3d dispPt = coordAdapter->localToDisplay(localPt);
+    Point3d norm = coordAdapter->normalForLocal(localPt);
+    Point3f norm3f(norm.x(),norm.y(),norm.z());
+    
+    // Construct a set of axes to build the shape around
+    Point3d xAxis,yAxis;
+    if (coordAdapter->isFlat())
+    {
+        xAxis = Point3d(1,0,0);
+        yAxis = Point3d(0,1,0);
+    } else {
+        Point3d north(0,0,1);
+        // Note: Also check if we're at a pole
+        xAxis = north.cross(norm);  xAxis.normalize();
+        yAxis = norm.cross(xAxis);  yAxis.normalize();
+    }
+    
+    // Set up a shift matrix that moves coordinate to the right orientation on the globe (or not)
+    Matrix4d shiftMat;
+    shiftMat(0,0) = xAxis.x();
+    shiftMat(0,1) = yAxis.x();
+    shiftMat(0,2) = norm.x();
+    shiftMat(0,3) = 0.0;
+    
+    shiftMat(1,0) = xAxis.y();
+    shiftMat(1,1) = yAxis.y();
+    shiftMat(1,2) = norm.y();
+    shiftMat(1,3) = 0.0;
+    
+    shiftMat(2,0) = xAxis.z();
+    shiftMat(2,1) = yAxis.z();
+    shiftMat(2,2) = norm.z();
+    shiftMat(2,3) = 0.0;
+    
+    shiftMat(3,0) = 0.0;
+    shiftMat(3,1) = 0.0;
+    shiftMat(3,2) = 0.0;
+    shiftMat(3,3) = 1.0;
+
+    // Now add in the transform for orientation
+    shiftMat = shiftMat * _transform;
+    
+    // Note: Should make this bigger
+    Mbr shapeMbr;
+    shapeMbr.addPoint(Point2f(_loc.x(),_loc.y()));
+    
+
+    // Run around the outline, building top and bottom lists
+    // Note: Should deal with doubles rather than floats
+    VectorRing ring(_pts.size());
+    for (unsigned int ii=0;ii<_pts.size();ii++)
+    {
+        const Point2d &pt = _pts[ii];
+        ring[ii] = Point2f(pt.x(),pt.y());
+    }
+    VectorTrianglesRef trisRef = VectorTriangles::createTriangles();
+    TesselateRing(ring,trisRef);
+    
+    std::vector<std::vector<Point3d> > polytope;
+    for (unsigned int ii=0;ii<trisRef->tris.size();ii++)
+    {
+        VectorTriangles::Triangle &tri = trisRef->tris[ii];
+        std::vector<Point3d> bot(3),top(3);
+        for (unsigned int jj=0;jj<3;jj++)
+        {
+            const Point3f &pt = trisRef->pts[tri.pts[jj]];
+            Vector4d bot4d = shiftMat * Vector4d(pt.x(),pt.y(),_loc.z()-_thickness/2.0,1.0);
+            bot[jj] = Point3d(bot4d.x(),bot4d.y(),bot4d.z())/bot4d.w() + dispPt;
+            Vector4d top4d = shiftMat * Vector4d(pt.x(),pt.y(),_loc.z()+_thickness/2.0,1.0);
+            top[jj] = Point3d(top4d.x(),top4d.y(),top4d.z())/top4d.w() + dispPt;
+        }
+        triBuilder->addTriangle(top[0],norm,theColor,top[1],norm,theColor,top[2],norm,theColor,shapeMbr);
+        triBuilder->addTriangle(bot[2],norm,theColor,bot[1],norm,theColor,bot[0],norm,theColor,shapeMbr);
+        
+        polytope.push_back(top);
+        polytope.push_back(bot);
+    }
+    
+    // Work around the outside doing sides
+    for (unsigned int ii=0;ii<_pts.size();ii++)
+    {
+        const Point2d &p0 = _pts[ii];
+        const Point2d &p1 = _pts[(ii+1)%_pts.size()];
+        
+        std::vector<Vector4d> pts4d(4);
+        pts4d[0] = shiftMat * Vector4d(p0.x(),p0.y(),_loc.z() - _thickness/2.0,1.0);
+        pts4d[1] = shiftMat * Vector4d(p1.x(),p1.y(),_loc.z() - _thickness/2.0,1.0);
+        pts4d[2] = shiftMat * Vector4d(p1.x(),p1.y(),_loc.z() + _thickness/2.0,1.0);
+        pts4d[3] = shiftMat * Vector4d(p0.x(),p0.y(),_loc.z() + _thickness/2.0,1.0);
+        std::vector<Point3d> pts(4);
+        for (unsigned int jj=0;jj<4;jj++)
+            pts[jj] = Point3d(pts4d[jj].x(),pts4d[jj].y(),pts4d[jj].z())/pts4d[jj].w() + dispPt;
+        polytope.push_back(pts);
+        
+        Point3d thisNorm = (pts[0]-pts[1]).cross(pts[2]-pts[1]);
+        thisNorm.normalize();
+        triBuilder->addConvexOutline(pts, thisNorm, theColor, shapeMbr);
+    }
+    
+    // Add a selection region
+    if (super.isSelectable)
+    {
+        selectManager->addPolytope(super.selectID,polytope,triBuilder->getShapeInfo().minVis,triBuilder->getShapeInfo().maxVis,triBuilder->getShapeInfo().enable);
+        sceneRep->selectIDs.insert(super.selectID);
+    }
 }
 
 @end
@@ -393,8 +569,19 @@ SimpleIdentity ShapeManager::addShapes(NSArray *shapes,NSDictionary * desc,Chang
     ShapeSceneRep *sceneRep = new ShapeSceneRep(shapeInfo.shapeId);
     sceneRep->fade = shapeInfo.fade;
     
-    ShapeDrawableBuilderTri drawBuildTri(scene->getCoordAdapter(),shapeInfo);
-    ShapeDrawableBuilder drawBuildReg(scene->getCoordAdapter(),shapeInfo,true);
+    // Figure out a good center
+    Point3d center(0,0,0);
+    int numObjects = 0;
+    for (WhirlyKitShape *shape in shapeInfo.shapes)
+    {
+        center += [shape displayCenter:scene->getCoordAdapter()];
+        numObjects++;
+    }
+    if (numObjects > 0)
+        center /= numObjects;
+
+    ShapeDrawableBuilderTri drawBuildTri(scene->getCoordAdapter(),shapeInfo,center);
+    ShapeDrawableBuilder drawBuildReg(scene->getCoordAdapter(),shapeInfo,true,center);
     
     // Work through the shapes
     for (WhirlyKitShape *shape in shapeInfo.shapes)

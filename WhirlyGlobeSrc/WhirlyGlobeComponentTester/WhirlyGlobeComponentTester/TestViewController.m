@@ -92,6 +92,7 @@ typedef enum {HighPerformance,LowPerformance} PerformanceMode;
     MaplyComponentObject *shapeCylObj;
     MaplyComponentObject *shapeSphereObj;
     MaplyComponentObject *greatCircleObj;
+    MaplyComponentObject *arrowsObj;
     MaplyComponentObject *screenLabelsObj;
     MaplyComponentObject *labelsObj;
     MaplyComponentObject *stickersObj;
@@ -221,6 +222,9 @@ typedef enum {HighPerformance,LowPerformance} PerformanceMode;
     [self.view addSubview:baseViewC.view];
     baseViewC.view.frame = self.view.bounds;
     [self addChildViewController:baseViewC];
+    
+    // This lets us mix screen space objects with everything else
+//    baseViewC.screenObjectDrawPriorityOffset = 0;
 
     // Note: Debugging
 //    [self labelExercise];
@@ -468,7 +472,7 @@ typedef enum {HighPerformance,LowPerformance} PerformanceMode;
         [markers addObject:marker];
     }
     
-    screenMarkersObj = [baseViewC addScreenMarkers:markers desc:@{kMaplyMinVis: @(0.0), kMaplyMaxVis: @(1.0), kMaplyFade: @(1.0)}];
+    screenMarkersObj = [baseViewC addScreenMarkers:markers desc:@{kMaplyMinVis: @(0.0), kMaplyMaxVis: @(1.0), kMaplyFade: @(1.0), kMaplyDrawPriority: @(100)}];
 }
 
 // Add 3D markers
@@ -565,7 +569,7 @@ typedef enum {HighPerformance,LowPerformance} PerformanceMode;
     shapeSphereObj = [baseViewC addShapes:spheres desc:desc];
 }
 
-// Add spheres
+// Add great circles
 - (void)addGreatCircles:(LocationInfo *)locations len:(int)len stride:(int)stride offset:(int)offset desc:(NSDictionary *)desc
 {
     NSMutableArray *circles = [[NSMutableArray alloc] init];
@@ -585,6 +589,31 @@ typedef enum {HighPerformance,LowPerformance} PerformanceMode;
     }
     
     greatCircleObj = [baseViewC addShapes:circles desc:desc ];
+}
+
+// Add arrows
+- (void)addArrows:(LocationInfo *)locations len:(int)len stride:(int)stride offset:(int)offset desc:(NSDictionary *)desc
+{
+    // Let's make this arrow about 100km big
+    double size = 100000;
+    double arrowCoords[2*7] = {-0.25*size,-0.75*size, -0.25*size,0.25*size, -0.5*size,0.25*size, 0.0*size,1.0*size,  0.5*size,0.25*size, 0.25*size,0.25*size, 0.25*size,-0.75*size};
+    
+    NSMutableArray *arrows = [[NSMutableArray alloc] init];
+    for (unsigned int ii=offset;ii<len;ii+=stride)
+    {
+        LocationInfo *loc = &locations[ii];
+        MaplyShapeExtruded *exShape = [[MaplyShapeExtruded alloc] initWithOutline:arrowCoords numCoordPairs:7];
+        exShape.center = MaplyCoordinateMakeWithDegrees(loc->lon, loc->lat);
+        exShape.selectable = true;
+        exShape.thickness = size * 1.0;
+        exShape.height = 0.0;
+        exShape.color = [UIColor colorWithRed:0.8 green:0.25 blue:0.25 alpha:1.0];
+        exShape.transform = [[MaplyMatrix alloc] initWithYaw:0.0 pitch:0.0 roll:45.0/180.0*M_PI];
+        
+        [arrows addObject:exShape];
+    }
+    
+    arrowsObj = [baseViewC addShapes:arrows desc:desc];
 }
 
 - (void)addLinesLon:(float)lonDelta lat:(float)latDelta color:(UIColor *)color
@@ -684,7 +713,8 @@ typedef enum {HighPerformance,LowPerformance} PerformanceMode;
     labelObj = [baseViewC addScreenLabels:labels desc:
                 @{kMaplyTextOutlineSize: @(1.0),
                   kMaplyTextOutlineColor: [UIColor blackColor],
-                  kMaplyFont: [UIFont systemFontOfSize:18.0]
+                  kMaplyFont: [UIFont systemFontOfSize:18.0],
+                  kMaplyDrawPriority: @(200)
                   }];
     
     return @[lines,screenLines,realLines,labelObj];
@@ -1073,9 +1103,10 @@ static const int NumMegaMarkers = 15000;
         layer.handleEdges = true;
         if (startupMapType == Maply2DMap)
         {
+            // Note: Debugging
             layer.useTargetZoomLevel = true;
             layer.singleLevelLoading = true;
-            layer.multiLevelLoads = @[@(-4), @(-2)];
+//            layer.multiLevelLoads = @[@(-4), @(-2)];
         }
         [baseViewC addLayer:layer];
         layer.drawPriority = 0;
@@ -1429,7 +1460,7 @@ static const int NumMegaMarkers = 15000;
     {
         if (!shapeCylObj)
         {
-            [self addShapeCylinders:locations len:NumLocations stride:4 offset:0 desc:@{kMaplyColor : [UIColor colorWithRed:0.0 green:0.0 blue:1.0 alpha:0.8], kMaplyFade: @(1.0)}];
+            [self addShapeCylinders:locations len:NumLocations stride:4 offset:0 desc:@{kMaplyColor : [UIColor colorWithRed:0.0 green:0.0 blue:1.0 alpha:0.8], kMaplyFade: @(1.0), kMaplyDrawPriority: @(1000)}];
         }
     } else {
         if (shapeCylObj)
@@ -1443,7 +1474,7 @@ static const int NumMegaMarkers = 15000;
     {
         if (!shapeSphereObj)
         {
-            [self addShapeSpheres:locations len:NumLocations stride:4 offset:1 desc:@{kMaplyColor : [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:0.8], kMaplyFade: @(1.0)}];
+            [self addShapeSpheres:locations len:NumLocations stride:4 offset:1 desc:@{kMaplyColor : [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:0.8], kMaplyFade: @(1.0), kMaplyDrawPriority: @(1000)}];
         }
     } else {
         if (shapeSphereObj)
@@ -1457,13 +1488,27 @@ static const int NumMegaMarkers = 15000;
     {
         if (!greatCircleObj)
         {
-            [self addGreatCircles:locations len:NumLocations stride:4 offset:2 desc:@{kMaplyColor : [UIColor colorWithRed:1.0 green:0.1 blue:0.0 alpha:1.0], kMaplyFade: @(1.0)}];
+            [self addGreatCircles:locations len:NumLocations stride:4 offset:2 desc:@{kMaplyColor : [UIColor colorWithRed:1.0 green:0.1 blue:0.0 alpha:1.0], kMaplyFade: @(1.0), kMaplyDrawPriority: @(1000)}];
         }
     } else {
         if (greatCircleObj)
         {
             [baseViewC removeObject:greatCircleObj];
             greatCircleObj = nil;
+        }
+    }
+    
+    if ([configViewC valueForSection:kMaplyTestCategoryObjects row:kMaplyTestShapeArrows])
+    {
+        if (!arrowsObj)
+        {
+            [self addArrows:locations len:NumLocations stride:4 offset:2 desc:@{kMaplyColor : [UIColor colorWithRed:1.0 green:0.1 blue:0.0 alpha:1.0], kMaplyFade: @(1.0)}];
+        }
+    } else {
+        if (arrowsObj)
+        {
+            [baseViewC removeObject:arrowsObj];
+            arrowsObj = nil;
         }
     }
     
@@ -1727,7 +1772,14 @@ static const int NumMegaMarkers = 15000;
         loc = gc.startPt;
         title = @"Shape";
         subTitle = @"Great Circle";
-    } else {
+    } else if ([selectedObj isKindOfClass:[MaplyShapeExtruded class]])
+    {
+        MaplyShapeExtruded *ex = (MaplyShapeExtruded *)selectedObj;
+        loc = ex.center;
+        title = @"Shape";
+        subTitle = @"Extruded";
+    } else
+    {
         // Don't know what it is
         return;
     }
