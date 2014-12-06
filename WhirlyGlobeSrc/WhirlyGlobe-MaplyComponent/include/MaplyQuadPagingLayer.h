@@ -54,6 +54,8 @@
 
 @end
 
+typedef void (^runForDataBlock)(MaplyBaseViewController *, MaplyComponentObject *);
+
 typedef enum {MaplyDataStyleAdd,MaplyDataStyleReplace} MaplyQuadPagingDataStyle;
 
 /** @brief The Quad Paging Layer is for loading things like vector tile sets.
@@ -187,6 +189,7 @@ typedef enum {MaplyDataStyleAdd,MaplyDataStyleReplace} MaplyQuadPagingDataStyle;
   */
 - (void)reload;
 
+- (void)runForAllData:(runForDataBlock)block;
 
 - (NSObject<MaplyPagingDelegate>*)pagingDelegate;
 
