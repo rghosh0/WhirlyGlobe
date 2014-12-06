@@ -385,6 +385,8 @@ using namespace Maply;
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(zoomGestureDidEnd:) name:kMaplyDoubleTapDragDidEnd object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animationDidStart:) name:kWKViewAnimationStarted object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animationDidEnd:) name:kWKViewAnimationEnded object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(rotateDidStart:) name:kMaplyRotateDelegateDidStart object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(rotateDidEnd:) name:kMaplyRotateDelegateDidEnd object:nil];
 }
 
 - (void)unregisterForEvents
@@ -398,6 +400,8 @@ using namespace Maply;
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kMaplyDoubleTapDragDidEnd object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kWKViewAnimationStarted object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kWKViewAnimationEnded object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:kMaplyRotateDelegateDidStart object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:kMaplyRotateDelegateDidEnd object:nil];
 }
 
 - (bool)panGesture
@@ -517,6 +521,16 @@ using namespace Maply;
 }
 
 #pragma mark - Interaction
+
+- (double)rotAngle {
+    if (!mapView)
+        return nil;
+    return mapView.rotAngle;
+}
+
+- (void)setRotAngle:(double)rotAngle {
+    [mapView setRotAngle:rotAngle];
+}
 
 /// Return the view extents.  This is the box the view point is allowed to be within.
 - (void)getViewExtentsLL:(MaplyCoordinate *)ll ur:(MaplyCoordinate *)ur
@@ -931,6 +945,22 @@ using namespace Maply;
 
     isAnimating = false;
     [self handleStopMoving:userMotion];
+}
+
+- (void) rotateDidStart:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+
+    [self handleStartMoving:true];
+}
+
+- (void) rotateDidEnd:(NSNotification *)note
+{
+    if (note.object != mapView)
+        return;
+    
+    [self handleStopMoving:true];
 }
 
 // Convenience routine to handle the end of moving

@@ -65,26 +65,37 @@ using namespace Maply;
     // Turn off rotation if we fall below two fingers
     if ([rotate numberOfTouches] < 2)
     {
+        if (rotType != RotNone)
+            [[NSNotificationCenter defaultCenter] postNotificationName:kMaplyRotateDelegateDidEnd object:mapView];
+        rotType = RotNone;
         return;
     }
     switch (rotate.state)
     {
         case UIGestureRecognizerStateBegan:
+        {
             [mapView cancelAnimation];
             rotType = RotFree;
             startRotationAngle = [mapView rotAngle];
+            [[NSNotificationCenter defaultCenter] postNotificationName:kMaplyRotateDelegateDidStart object:mapView];
+        }
             break;
         case UIGestureRecognizerStateChanged:
+        {
             [mapView cancelAnimation];
             if (rotType == RotFree)
             {
                 [mapView setRotAngle:(startRotationAngle + rotate.rotation)];
 	        }
+        }
             break;
         case UIGestureRecognizerStateFailed:
         case UIGestureRecognizerStateCancelled:
         case UIGestureRecognizerStateEnded:
+        {
+            [[NSNotificationCenter defaultCenter] postNotificationName:kMaplyRotateDelegateDidEnd object:mapView];
             rotType = RotNone;
+        }
             break;
         default:
             break;
