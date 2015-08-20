@@ -524,7 +524,7 @@ using namespace Maply;
 
 - (double)rotAngle {
     if (!mapView)
-        return nil;
+        return 0.0;
     return mapView.rotAngle;
 }
 
