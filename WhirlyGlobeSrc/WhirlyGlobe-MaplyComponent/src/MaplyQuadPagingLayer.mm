@@ -999,6 +999,25 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
         [self askDelegateForLoad:tilesToRefresh[ii] isRefresh:true];
 }
 
+- (void)runForAllData:(runForDataBlock)block {
+    pthread_mutex_lock(&tileSetLock);
+    for (QuadPagingLoadedTileSet::iterator it = tileSet.begin();
+         it != tileSet.end(); ++it)
+    {
+        if ((*it)->replaceCompObjs) {
+            for (MaplyComponentObject *compObj in (*it)->replaceCompObjs) {
+                block(_viewC, compObj);
+            }
+        }
+        if ((*it)->addCompObjs) {
+            for (MaplyComponentObject *compObj in (*it)->addCompObjs) {
+                block(_viewC, compObj);
+            }
+        }
+    }
+    pthread_mutex_unlock(&tileSetLock);
+}
+
 
 - (NSObject<MaplyPagingDelegate>*)pagingDelegate {
   return tileSource;
