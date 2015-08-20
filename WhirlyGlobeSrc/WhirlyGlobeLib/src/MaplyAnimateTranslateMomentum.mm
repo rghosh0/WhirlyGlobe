@@ -130,8 +130,11 @@ using namespace WhirlyKit;
             // How about leaving y alone?
             testLoc = Point3d(newLoc.x(),oldLoc.y(),newLoc.z());
             [mapView setLoc:testLoc runUpdates:false];
-            if (![self withinBounds:testLoc view:glView renderer:sceneRenderer])
+            if (![self withinBounds:testLoc view:glView renderer:sceneRenderer]) {
                 [mapView setLoc:oldLoc runUpdates:false];
+                startDate = 0;
+                [mapView cancelAnimation];
+            }
         }
     }
     
