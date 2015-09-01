@@ -138,7 +138,7 @@ using namespace WhirlyKit;
     canFetchFrames = false;
     
     // See if we're letting the source do the async calls or what
-    sourceWantsAsync = [_tileSource respondsToSelector:@selector(startFetchLayer:tile:)];
+    sourceWantsAsync = [_tileSource respondsToSelector:@selector(startFetchLayer:tile:)] || [_tileSource respondsToSelector:@selector(startFetchLayer:tile:frame:)];
     
     // See if the delegate is doing variable sized tiles (kill me)
     variableSizeTiles = [_tileSource respondsToSelector:@selector(tileSizeForTile:)];
