@@ -875,6 +875,50 @@ static const int BaseEarthPriority = kMaplyImageLayerDrawPriorityDefault;
     });
 }
 
+- (void)addGeoJson:(NSString*)name {
+    CGSize size = CGSizeMake(8 * [UIScreen mainScreen].scale, 32);
+    MaplyLinearTextureBuilder *lineTexBuilder = [[MaplyLinearTextureBuilder alloc] initWithSize:size];
+    [lineTexBuilder setPattern:@[@(size.height)]];
+    lineTexBuilder.opacityFunc = MaplyOpacitySin3;
+    UIImage *lineImage = [lineTexBuilder makeImage];
+    MaplyTexture *lineTexture = [baseViewC addTexture:lineImage
+                                          imageFormat:MaplyImageIntRGBA
+                                            wrapFlags:MaplyImageWrapY
+                                                 mode:MaplyThreadCurrent];
+    
+    NSString *path = [[NSBundle mainBundle] pathForResource:name ofType:nil];
+    if(path) {
+        NSData *data = [NSData dataWithContentsOfFile:path];
+        NSDictionary *jsonDictionary = [NSJSONSerialization JSONObjectWithData:data
+                                                                       options:0 error:nil];
+        MaplyVectorObject *vecObj = [MaplyVectorObject VectorObjectFromGeoJSONDictionary:jsonDictionary];
+        if(vecObj) {
+            [baseViewC addWideVectors:@[vecObj]
+                                 desc: @{kMaplyColor: [UIColor colorWithRed:1 green:0 blue:0 alpha:0.5],
+                                         kMaplyFilled: @NO,
+                                         kMaplyEnable: @YES,
+                                         kMaplyFade: @0,
+                                         kMaplyDrawPriority: @(kMaplyVectorDrawPriorityDefault + 1),
+                                         kMaplyVecCentered: @YES,
+                                         kMaplyVecTexture: lineTexture,
+                                         kMaplyWideVecJoinType: kMaplyWideVecMiterJoin,
+                                         kMaplyWideVecCoordType: kMaplyWideVecCoordTypeScreen,
+                                         kMaplyVecWidth: @(8)}
+                                 mode:MaplyThreadCurrent];
+            [baseViewC addVectors:@[vecObj]
+                             desc: @{kMaplyColor: [UIColor blackColor],
+                                     kMaplyFilled: @NO,
+                                     kMaplyEnable: @YES,
+                                     kMaplyFade: @0,
+                                     kMaplyDrawPriority: @(kMaplyVectorDrawPriorityDefault),
+                                     kMaplyVecCentered: @YES,
+                                     kMaplyVecWidth: @(1)}
+                             mode:MaplyThreadCurrent];
+            sfRoadsObjArray = @[vecObj];
+        }
+    }
+}
+
 - (void)addArcGISQuery:(NSString *)url
 {
     AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
@@ -1083,6 +1127,15 @@ static const float EarthRadius = 6371000;
     
     // And some atmosphere, because the iDevice fill rate is just too fast
     atmosObj = [[MaplyAtmosphere alloc] initWithViewC:globeViewC];
+    // Very red
+//    float wavelength[3] = {0.350f,0.970f,0.975f};
+    // Blueish atmosphere
+//    float wavelength[3] = {0.650f,0.570f,0.475f};
+    float wavelength[3] = {0.650f,0.570f,0.475f};
+//    atmosObj.outerRadius = 1.1;
+//    atmosObj.Kr = atmosObj.Kr * 2;
+//    atmosObj.Km = atmosObj.Km * 2;
+    [atmosObj setWavelength:wavelength];
     [atmosObj setSunPosition:[sun getDirection]];
 }
 
@@ -1391,6 +1444,8 @@ static const int NumMegaMarkers = 15000;
         layer.currentImage = 0.5;
         layer.singleLevelLoading = (startupMapType == Maply2DMap);
         layer.shaderProgramName = kMaplyShaderDefaultTriNightDay;
+        if (atmosObj)
+            layer.shaderProgramName = atmosObj.groundShader.name;
         [baseViewC addLayer:layer];
         layer.drawPriority = BaseEarthPriority;
         baseLayer = layer;
@@ -1421,7 +1476,6 @@ static const int NumMegaMarkers = 15000;
 //        layer.color = [UIColor colorWithWhite:0.5 alpha:0.5];
         if (startupMapType == Maply2DMap)
         {
-            // Note: Debugging
             layer.useTargetZoomLevel = true;
             layer.singleLevelLoading = true;
             layer.multiLevelLoads = @[@(-2)];
@@ -1643,8 +1697,6 @@ static const int NumMegaMarkers = 15000;
             {
 #ifdef NOTPODSPECWG
                 self.title = @"Mapbox Vector Streets";
-                // Note: Debugging
-                thisCacheDir = nil;
                 thisCacheDir = [NSString stringWithFormat:@"%@/mapbox-streets-vectiles",cacheDir];
                 [MaplyMapnikVectorTiles StartRemoteVectorTilesWithTileSpec:@"https://a.tiles.mapbox.com/v4/mapbox.mapbox-streets-v6.json"
                     // Note: You need your own access token here
@@ -1926,13 +1978,13 @@ static const int NumMegaMarkers = 15000;
         if (!sfRoadsObjArray)
         {
             [self addShapeFile:@"tl_2013_06075_roads"];
-//            MaplyCoordinate coords[5];
-//            coords[0] = MaplyCoordinateMakeWithDegrees(-122.3, 37.7);
-//            coords[1] = MaplyCoordinateMakeWithDegrees(-122.3, 37.783333);
-//            coords[2] = MaplyCoordinateMakeWithDegrees(-122.3, 37.783333);
-//            coords[3] = MaplyCoordinateMakeWithDegrees(-122.416667, 37.8333);
-//            MaplyVectorObject *vecObj = [[MaplyVectorObject alloc] initWithLineString:coords numCoords:4 attributes:nil];
-//            sfRoadsObjArray = [self addWideVectors:vecObj];
+            MaplyCoordinate coords[5];
+            coords[0] = MaplyCoordinateMakeWithDegrees(-122.3, 37.7);
+            coords[1] = MaplyCoordinateMakeWithDegrees(-122.3, 37.783333);
+            coords[2] = MaplyCoordinateMakeWithDegrees(-122.3, 37.783333);
+            coords[3] = MaplyCoordinateMakeWithDegrees(-122.416667, 37.8333);
+            MaplyVectorObject *vecObj = [[MaplyVectorObject alloc] initWithLineString:coords numCoords:4 attributes:nil];
+            sfRoadsObjArray = [self addWideVectors:vecObj];
         }
     } else {
         if (sfRoadsObjArray)
