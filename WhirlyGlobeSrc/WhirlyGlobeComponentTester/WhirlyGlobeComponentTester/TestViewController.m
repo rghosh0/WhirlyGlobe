@@ -117,6 +117,8 @@ static const int BaseEarthPriority = kMaplyImageLayerDrawPriorityDefault;
     MaplyStarsModel *stars;
     MaplyComponentObject *sunObj,*moonObj;
     MaplyAtmosphere *atmosObj;
+    NSDictionary *tessValues;
+    NSArray *labelTestObjs;
     
     // Paging marker test
     MaplyQuadPagingLayer *markerLayer;
@@ -213,6 +215,8 @@ static const int BaseEarthPriority = kMaplyImageLayerDrawPriorityDefault;
             globeViewC.delegate = self;
             baseViewC = globeViewC;
             maxLayerTiles = 128;
+            // Per level tesselation control
+            tessValues = @{@(-1) : @10, @0 : @20, @1 : @16};
             break;
         case Maply3DMap:
             mapViewC = [[MaplyViewController alloc] init];
@@ -239,7 +243,7 @@ static const int BaseEarthPriority = kMaplyImageLayerDrawPriorityDefault;
     [self.view addSubview:baseViewC.view];
     baseViewC.view.frame = self.view.bounds;
     [self addChildViewController:baseViewC];
-
+    
     // Note: Debugging
 //    if (globeViewC)
 //        [globeViewC setTiltMinHeight:0.001 maxHeight:0.01 minTilt:1.21771169 maxTilt:0.0];
@@ -279,6 +283,16 @@ static const int BaseEarthPriority = kMaplyImageLayerDrawPriorityDefault;
         mapViewC.height = 1.0;
         [mapViewC animateToPosition:MaplyCoordinateMakeWithDegrees(-122.4192, 37.7793) time:1.0];
     }
+    
+    // Note: Debugging
+//    if (globeViewC)
+//    {
+//        [globeViewC setFarClipPlane:10.0];
+//        float minZoom,maxZoom;
+//        [globeViewC getZoomLimitsMin:&minZoom max:&maxZoom];
+//        [globeViewC setZoomLimitsMin:minZoom max:8.0];
+//    }
+
     
     NSString *cacheDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES)  objectAtIndex:0];
     
@@ -351,6 +365,70 @@ static const int BaseEarthPriority = kMaplyImageLayerDrawPriorityDefault;
     // Test animation
 //    if (globeViewC)
 //        [self performSelector:@selector(viewAnimationTest) withObject:nil afterDelay:2.0];
+    
+//    [self performSelector:@selector(labelMarkerTest:) withObject:@(0.1) afterDelay:0.1];
+}
+
+- (void)labelMarkerTest:(NSNumber *)time
+{
+    if (labelTestObjs)
+    {
+        [baseViewC removeObjects:labelTestObjs mode:MaplyThreadCurrent];
+        labelTestObjs = nil;
+    }
+    
+    UIImage *redSquare = [UIImage imageNamed:@"redsquare"];
+    UIImage *blueSquare = [UIImage imageNamed:@"bluesquare"];
+    CGSize redSize = CGSizeMake(40, 40);
+    CGSize blueSize = CGSizeMake(4, 4);
+    
+    MaplyCoordinate coord = MaplyCoordinateMakeWithDegrees(-94.58, 39.1);
+    
+    NSMutableArray *redMarkers = [NSMutableArray array];
+    NSMutableArray *blueMarkers = [NSMutableArray array];
+    NSMutableArray *labels = [NSMutableArray array];
+    {
+        MaplyScreenMarker *marker = [[MaplyScreenMarker alloc] init];
+        marker.image = redSquare;
+        marker.loc = coord;
+        marker.size = redSize;
+        marker.layoutImportance = 2.0;
+        marker.offset = CGPointMake(0.0,-34.0);
+        marker.selectable = true;
+        marker.userObject = @"Red Screen Marker";
+        [redMarkers addObject:marker];
+    }
+    
+    {
+        MaplyScreenMarker *marker = [[MaplyScreenMarker alloc] init];
+        marker.image = blueSquare;
+        marker.loc = coord;
+        marker.size = blueSize;
+        marker.layoutImportance = 3.0;
+        marker.offset = CGPointMake(0.0,0.0);
+        marker.selectable = true;
+        marker.userObject = @"Blue Screen Marker";
+        [blueMarkers addObject:marker];
+    }
+    
+    {
+        MaplyScreenLabel *label = [[MaplyScreenLabel alloc] init];
+        label.loc = coord;
+        label.text = @"Test Label";
+        label.layoutPlacement = kMaplyLayoutCenter|kMaplyLayoutAbove;
+        label.layoutImportance = 1.0;
+        label.offset = CGPointMake(0, 20.0);
+        label.selectable = true;
+        label.userObject = @"Test Label";
+        [labels addObject:label];
+    }
+    
+    NSMutableArray *newObjs = [NSMutableArray array];
+//    [newObjs addObject:[baseViewC addScreenMarkers:redMarkers desc:@{kMaplyDrawPriority: @(100)} mode:MaplyThreadCurrent]];
+    [newObjs addObject:[baseViewC addScreenMarkers:blueMarkers desc:@{kMaplyDrawPriority: @(101)} mode:MaplyThreadCurrent]];
+    [newObjs addObject:[baseViewC addScreenLabels:labels desc:@{kMaplyDrawPriority: @(102), kMaplyFont: [UIFont systemFontOfSize:30.0]} mode:MaplyThreadCurrent]];
+    
+//    [self performSelector:@selector(labelMarkerTest:) withObject:time afterDelay:[time floatValue]];
 }
 
 - (void)findHeightTest
@@ -530,23 +608,24 @@ static const int BaseEarthPriority = kMaplyImageLayerDrawPriorityDefault;
 // Add screen (2D) markers at all our locations
 - (void)addScreenMarkers:(LocationInfo *)locations len:(int)len stride:(int)stride offset:(int)offset
 {
-    CGSize size = CGSizeMake(40, 40);
     UIImage *pinImage = [UIImage imageNamed:@"map_pin"];
-    
     NSMutableArray *markers = [NSMutableArray array];
     for (unsigned int ii=offset;ii<len;ii+=stride)
     {
         LocationInfo *location = &locations[ii];
-        MaplyScreenMarker *marker = [[MaplyScreenMarker alloc] init];
-        marker.image = pinImage;
-        marker.loc = MaplyCoordinateMakeWithDegrees(location->lon,location->lat);
-        marker.size = size;
-        marker.userObject = [NSString stringWithFormat:@"%s",location->name];
-        marker.layoutImportance = MAXFLOAT;
-        [markers addObject:marker];
+        
+        {
+            MaplyScreenMarker *marker = [[MaplyScreenMarker alloc] init];
+            marker.image = pinImage;
+            marker.loc = MaplyCoordinateMakeWithDegrees(location->lon,location->lat);
+            marker.size = CGSizeMake(20,20);
+            marker.userObject = [NSString stringWithFormat:@"%s",location->name];
+            marker.layoutImportance = 2.0;
+            [markers addObject:marker];
+        }
     }
     
-    screenMarkersObj = [baseViewC addScreenMarkers:markers desc:@{kMaplyMinVis: @(0.0), kMaplyMaxVis: @(1.0), kMaplyFade: @(1.0), kMaplyDrawPriority: @(100)}];
+    screenMarkersObj = [baseViewC addScreenMarkers:markers desc:@{kMaplyDrawPriority: @(100)}];
 }
 
 // Add 3D markers
@@ -1312,6 +1391,7 @@ static const int NumMegaMarkers = 15000;
         layer.waitLoad = imageWaitLoad;
         layer.drawPriority = BaseEarthPriority;
         layer.singleLevelLoading = (startupMapType == Maply2DMap);
+        [layer setTesselationValues:tessValues];
         [baseViewC addLayer:layer];
         
         labelColor = [UIColor blackColor];
@@ -1351,6 +1431,7 @@ static const int NumMegaMarkers = 15000;
         MaplyQuadImageTilesLayer *layer = [[MaplyQuadImageTilesLayer alloc] initWithCoordSystem:tileSource.coordSys tileSource:tileSource];
         layer.handleEdges = true;
         layer.requireElev = requireElev;
+        [layer setTesselationValues:tessValues];
         [baseViewC addLayer:layer];
         layer.drawPriority = BaseEarthPriority;
         layer.waitLoad = imageWaitLoad;
@@ -1379,6 +1460,7 @@ static const int NumMegaMarkers = 15000;
         layer.waitLoad = imageWaitLoad;
         layer.maxTiles = maxLayerTiles;
         layer.singleLevelLoading = (startupMapType == Maply2DMap);
+        [layer setTesselationValues:tessValues];
         [baseViewC addLayer:layer];
         layer.drawPriority = BaseEarthPriority;
         baseLayer = layer;
@@ -1444,6 +1526,7 @@ static const int NumMegaMarkers = 15000;
         layer.currentImage = 0.5;
         layer.singleLevelLoading = (startupMapType == Maply2DMap);
         layer.shaderProgramName = kMaplyShaderDefaultTriNightDay;
+        [layer setTesselationValues:tessValues];
         if (atmosObj)
             layer.shaderProgramName = atmosObj.groundShader.name;
         [baseViewC addLayer:layer];
@@ -1465,7 +1548,7 @@ static const int NumMegaMarkers = 15000;
         labelBackColor = [UIColor whiteColor];
         vecColor = [UIColor blackColor];
         vecWidth = 4.0;
-        MaplyAnimationTestTileSource *tileSource = [[MaplyAnimationTestTileSource alloc] initWithCoordSys:[[MaplySphericalMercator alloc] initWebStandard] minZoom:0 maxZoom:21 depth:1];
+        MaplyAnimationTestTileSource *tileSource = [[MaplyAnimationTestTileSource alloc] initWithCoordSys:[[MaplySphericalMercator alloc] initWebStandard] minZoom:0 maxZoom:22 depth:1];
         tileSource.pixelsPerSide = 256;
         tileSource.transparentMode = true;
         MaplyQuadImageTilesLayer *layer = [[MaplyQuadImageTilesLayer alloc] initWithCoordSystem:tileSource.coordSys tileSource:tileSource];
@@ -1480,6 +1563,7 @@ static const int NumMegaMarkers = 15000;
             layer.singleLevelLoading = true;
             layer.multiLevelLoads = @[@(-2)];
         }
+        [layer setTesselationValues:tessValues];
         [baseViewC addLayer:layer];
         layer.drawPriority = BaseEarthPriority;
         baseLayer = layer;
@@ -1549,6 +1633,7 @@ static const int NumMegaMarkers = 15000;
         layer.useTargetZoomLevel = true;
         layer.singleLevelLoading = true;
         layer.multiLevelLoads = @[@(-3)];
+        [layer setTesselationValues:tessValues];
         [baseViewC addLayer:layer];
         layer.drawPriority = BaseEarthPriority;
         baseLayer = layer;        
@@ -1578,6 +1663,7 @@ static const int NumMegaMarkers = 15000;
                  layer.singleLevelLoading = true;
                  layer.multiLevelLoads = @[@(-4), @(-2)];
              }
+             [layer setTesselationValues:tessValues];
              [baseViewC addLayer:layer];
              layer.drawPriority = BaseEarthPriority;
              baseLayer = layer;
@@ -1856,7 +1942,7 @@ static const int NumMegaMarkers = 15000;
     if ([configViewC valueForSection:kMaplyTestCategoryObjects row:kMaplyTestMarker2D])
     {
         if (!screenMarkersObj)
-            [self addScreenMarkers:locations len:NumLocations stride:4 offset:2];
+            [self addScreenMarkers:locations len:NumLocations stride:1 offset:0];
     } else {
         if (screenMarkersObj)
         {
