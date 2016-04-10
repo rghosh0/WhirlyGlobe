@@ -192,7 +192,7 @@ using namespace WhirlyKit;
     
     canLoadFrames = [_loader respondsToSelector:@selector(quadDisplayLayer:loadTile:frame:)];
     numFrames = [_loader numFrames];
-    if (numFrames == 1 || !_frameLoading)
+    if (!_frameLoading)
         canLoadFrames = false;
     
     if (canLoadFrames)
