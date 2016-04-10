@@ -61,6 +61,8 @@
 
 @end
 
+typedef void (^runForDataBlock)(MaplyBaseViewController *, MaplyComponentObject *);
+
 typedef NS_ENUM(NSInteger, MaplyQuadPagingDataStyle) {
 	MaplyDataStyleAdd,
 	MaplyDataStyleReplace,
@@ -246,6 +248,7 @@ typedef NS_ENUM(NSInteger, MaplyQuadPagingDataStyle) {
   */
 - (void)reload:(MaplyBoundingBox)bounds;
 
+- (void)runForAllData:(runForDataBlock)block;
 
 - (nullable NSObject<MaplyPagingDelegate> *)pagingDelegate;
 
