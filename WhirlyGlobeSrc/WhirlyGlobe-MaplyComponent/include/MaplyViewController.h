@@ -189,6 +189,8 @@ typedef NS_ENUM(NSInteger, MaplyMapType) {
  */
 @property(nonatomic,assign) float heading;
 
+@property(nonatomic,assign) double rotAngle;
+
 /** @brief If set, we'll automatically move to wherever the user tapped.
     @details When on we'll move the current location to wherever the user tapped if they tapped the globe.  That's true for selection as well.  On by default.
  */

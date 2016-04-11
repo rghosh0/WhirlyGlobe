@@ -73,6 +73,8 @@
 /// Set the location, but we may or may not run updates
 - (void)setLoc:(WhirlyKit::Point3d &)loc runUpdates:(bool)runUpdates;
 
+- (void)setRotAngle:(double)newRotAngle runUpdates:(bool)runUpdates;
+
 /** Given a location on the screen and the screen size, figure out where we touched
     the plane.  Returns true if we hit and where.
     Returns false if we didn't, which can only happened if we're turned away.
