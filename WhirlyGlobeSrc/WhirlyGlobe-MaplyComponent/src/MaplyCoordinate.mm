@@ -51,6 +51,15 @@ MaplyCoordinate MaplyCoordinateMakeWithDegrees(float degLon,float degLat)
     return coord;
 }
 
+MaplyCoordinateD MaplyCoordinateDMakeWithDegrees(double degLon,double degLat)
+{
+    MaplyCoordinateD coord;
+    coord.x = DegToRad(degLon);
+    coord.y = DegToRad(degLat);
+    
+    return coord;
+}
+
 MaplyCoordinateD MaplyCoordinateDMakeWithMaplyCoordinate(MaplyCoordinate c)
 {
     MaplyCoordinateD coord;
@@ -102,6 +111,18 @@ double MaplyGreatCircleDistance(MaplyCoordinate p0,MaplyCoordinate p1)
 @implementation MaplyCoordinate3dWrapper
 
 - (instancetype)initWithCoord:(MaplyCoordinate3d)coord
+{
+    self = [super init];
+    _coord = coord;
+    
+    return self;
+}
+
+@end
+
+@implementation MaplyCoordinate3dDWrapper
+
+- (instancetype)initWithCoord:(MaplyCoordinate3dD)coord
 {
     self = [super init];
     _coord = coord;

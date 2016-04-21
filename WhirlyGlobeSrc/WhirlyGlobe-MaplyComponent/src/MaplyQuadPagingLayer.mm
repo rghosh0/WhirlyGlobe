@@ -208,6 +208,7 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
     WhirlyKitViewState *lastViewState;
     WhirlyKitSceneRendererES *_renderer;
     bool hasUnload;
+    bool hasBoundingBox;
 }
 
 - (instancetype)initWithCoordSystem:(MaplyCoordinateSystem *)inCoordSys delegate:(NSObject<MaplyPagingDelegate> *)inTileSource
@@ -230,8 +231,10 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
     _singleLevelLoading = false;
     _groupChildrenWithParent = true;
     hasUnload = [tileSource respondsToSelector:@selector(tileDidUnload:)];
+    hasBoundingBox = [tileSource respondsToSelector:@selector(getBoundingBox:ll:ur:)];
     _minTileHeight = 0.0;
     _maxTileHeight = 0.0;
+    _useParentTileBounds = true;
     
     return self;
 }
@@ -515,18 +518,30 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
     if (ident.level <= 1)
         return MAXFLOAT;
     
-    // For a child tile, we're taking the size of our parent so all the children load at once
-    WhirlyKit::Quadtree::Identifier parentIdent;
-    parentIdent.x = ident.x / 2;
-    parentIdent.y = ident.y / 2;
-    parentIdent.level = ident.level - 1;
+    // We may use the parent bounding box for testing
+    // This will force all four children in at once.
+    WhirlyKit::Quadtree::Identifier testID;
+    MaplyTileID testTileID;
+    if (_useParentTileBounds)
+    {
+        // For a child tile, we're taking the size of our parent so all the children load at once
+        WhirlyKit::Quadtree::Identifier parentIdent;
+        parentIdent.x = ident.x / 2;
+        parentIdent.y = ident.y / 2;
+        parentIdent.level = ident.level - 1;
+        
+        testID = parentIdent;
+    } else {
+        testID = ident;
+    }
+    testTileID.x = testID.x;    testTileID.y = testID.y;    testTileID.level = testID.level;
     
-    Mbr parentMbr = quadLayer.quadtree->generateMbrForNode(parentIdent);
+    Mbr testMbr = quadLayer.quadtree->generateMbrForNode(testID);
 
     double import = 0.0;
     if (canShortCircuitImportance && maxShortCircuitLevel != -1)
     {
-        if (TileIsOnScreen(viewState, frameSize, coordSys->coordSystem, scene->getCoordAdapter(), (_singleLevelLoading ? mbr : parentMbr), ident, attrs))
+        if (TileIsOnScreen(viewState, frameSize, coordSys->coordSystem, scene->getCoordAdapter(), (_singleLevelLoading ? mbr : testMbr), ident, attrs))
         {
             import = 1.0/(ident.level+10);
             if (ident.level <= maxShortCircuitLevel)
@@ -534,15 +549,22 @@ typedef std::set<QuadPagingLoadedTile *,QuadPagingLoadedTileSorter> QuadPagingLo
         }
         import *= self.importance;
     } else {
+        MaplyCoordinate3dD ll,ur;
+        ll.x = testMbr.ll().x();  ll.y = testMbr.ll().y();  ll.z = _minTileHeight;
+        ur.x = testMbr.ur().x();  ur.y = testMbr.ur().y();  ur.z = _maxTileHeight;
+        
+        if (hasBoundingBox)
+            [tileSource getBoundingBox:testTileID ll:&ll ur:&ur];
+        
         // This is how much screen real estate we're covering for this tile
         double div = 1.0;
         if (_groupChildrenWithParent)
             div = 4.0;
         
-        if (_minTileHeight != _maxTileHeight)
-            import = ScreenImportance(viewState, frameSize, 1, [coordSys getCoordSystem], scene->getCoordAdapter(), parentMbr, _minTileHeight, _maxTileHeight, ident, attrs) / div;
+        if (ll.z != ur.z)
+            import = ScreenImportance(viewState, frameSize, 1, [coordSys getCoordSystem], scene->getCoordAdapter(), testMbr, ll.z, ur.z, ident, attrs) / div;
         else
-            import = ScreenImportance(viewState, frameSize, viewState.eyeVec, 1, [coordSys getCoordSystem], scene->getCoordAdapter(), parentMbr, ident, attrs) / div;
+            import = ScreenImportance(viewState, frameSize, viewState.eyeVec, 1, [coordSys getCoordSystem], scene->getCoordAdapter(), testMbr, ident, attrs) / div;
     }
     
     // Just the importance of this tile.
